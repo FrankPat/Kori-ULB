@@ -2,7 +2,7 @@ function myevol(infile,var,vid)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot time evolution of variable and create video (optional)
-% f.ETISh v1.8
+% Kori-ULB
 %
 % call:
 %   myevol(infile, var, vid)
@@ -50,7 +50,7 @@ if nargin<3
 else
     if vid=='v' || vid=='w'
         makevid=1;
-        video=VideoWriter('fETIShVideo','Uncompressed AVI');
+        video=VideoWriter('KoriVideo','Uncompressed AVI');
         video.FrameRate=4;
         GF=[];
     end
@@ -261,7 +261,7 @@ for i=1:ctr.snapshot
         plim1=nanmax(abs(dvar(:)));
         plim1(plim1==0)=1;
         plim0=-plim1;
-        if var=='m' || var=='cm'
+        if var=='m'
             plim0=0;
         end
     end
@@ -269,8 +269,10 @@ for i=1:ctr.snapshot
     title(titlename);
     if var=='sb'
         colormap(ax1,crameri('oleron','pivot',fc.DeltaSL(ti)));
+    elseif var=='u'
+        colormap(ax1,crameri('imola'));
     else
-        colormap(ax1,crameri('vik'));
+        colormap(ax1,crameri('broc'));
     end
     colorbar;
     if ctr.glMASKexist==1
@@ -322,265 +324,4 @@ function u=velocity_on_grid(ux,uy)
 end
 
 
-function cmap = crameri(ColormapName,varargin) 
-% crameri returns perceptually-uniform scientific colormaps created
-% by Fabio Crameri. 
-% 
-% Syntax 
-% 
-%  crameri 
-%  cmap = crameri('ColormapName') 
-%  cmap = crameri('-ColormapName') 
-%  cmap = crameri(...,NLevels)
-%  cmap = crameri(...,'pivot',PivotValue) 
-%  crameri(...)
-% 
-% Description 
-% 
-% crameri without any inputs displays the options for colormaps. 
-% 
-% cmap = crameri('ColormapName') returns a 256x3 colormap.  For a visual
-% depiction of valid colormap names, type |crameri|. 
-%
-% cmap = crameri('-ColormapName') a minus sign preceeding any ColormapName flips the
-% order of the colormap. 
-%
-% cmap = crameri(...,NLevels) specifies a number of levels in the colormap.  Default
-% value is 256. 
-%
-% cmap = crameri(...,'pivot',PivotValue) centers a diverging colormap such that white 
-% corresponds to a given value and maximum extents are set using current caxis limits. 
-% If no PivotValue is set, 0 is assumed. 
-%
-% crameri(...) without any outputs sets the current colormap to the current axes.  
-% 
-% Examples 
-% For examples, type: 
-% 
-%  showdemo crameri_documentation
-%
-% Author Info 
-% This function was written by Chad A. Greene of the University of Texas
-% Institute for Geophysics (UTIG), August 2018, using Fabio Crameri's 
-% scientific colormaps, version 4.0. http://www.fabiocrameri.ch/colourmaps.php
-% 
-% Citing this colormap: 
-% Please acknowledge the free use of these colormaps by citing
-% 
-% Crameri, F. (2018). Scientific colour-maps. Zenodo. http://doi.org/10.5281/zenodo.1243862
-% 
-% Crameri, F. (2018), Geodynamic diagnostics, scientific visualisation and 
-% StagLab 3.0, Geosci. Model Dev., 11, 2541-2562, doi:10.5194/gmd-11-2541-2018.
-% 
-% For more on choosing effective and accurate colormaps for science, be sure
-% to enjoy this fine beach reading: 
-% 
-% Thyng, K.M., C.A. Greene, R.D. Hetland, H.M. Zimmerle, and S.F. DiMarco. 2016. True 
-% colors of oceanography: Guidelines for effective and accurate colormap selection. 
-% Oceanography 29(3):9-13, http://dx.doi.org/10.5670/oceanog.2016.66.
-% 
-% See also colormap and caxis.  
-
-% Display colormap options: 
-
-if nargin==0
-   figure('menubar','none','numbertitle','off','Name','crameri options:')
-   
-   if license('test','image_toolbox')
-      imshow(imread('crameri6.0.png')); 
-   else
-      axes('pos',[0 0 1 1])
-      image(imread('crameri6.0.png')); 
-      axis image off
-   end
-   
-   return
-end
-
-% Error checks: 
-
-assert(isnumeric(ColormapName)==0,'Input error: ColormapName must be a string.') 
-
-% Set defaults: 
-
-NLevels = 256; 
-autopivot = false; 
-PivotValue = 0; 
-InvertedColormap = false; 
-
-% Parse inputs: 
-
-% Does user want to flip the colormap direction? 
-dash = strncmp(ColormapName,'-',1); 
-if any(dash) 
-   InvertedColormap = true; 
-   ColormapName(dash) = []; 
-end
-
-% Standardize all colormap names to lowercase: 
-ColormapName = lower(ColormapName); 
-
-% Oleron's too hard for me to remember, so I'm gonna use dem or topo. 
-if ismember(ColormapName,{'dem','topo'})
-   ColormapName = 'oleron'; 
-end
-
-% Does the user want to center a diverging colormap on a specific value? 
-% This parsing support original 'zero' syntax and current 'pivot' syntax. 
-tmp = strncmpi(varargin,'pivot',3); 
-if any(tmp) 
-   autopivot = true; 
-   try
-      if isscalar(varargin{find(tmp)+1})
-         PivotValue = varargin{find(tmp)+1}; 
-         tmp(find(tmp)+1) = 1; 
-      end
-   end
-   varargin = varargin(~tmp); 
-end
-
-% Has user requested a specific number of levels? 
-tmp = isscalar(varargin); 
-if any(tmp) 
-   NLevels = varargin{tmp}; 
-end
-
-% Load RGB values and interpolate to NLevels: 
-
-try
-   S = load('CrameriColourMaps6.0.mat',ColormapName); 
-   cmap = S.(ColormapName); 
-catch
-   error(['Unknown colormap name ''',ColormapName,'''. Try typing crameri with no inputs to check the options and try again.'])
-end
-
-% Interpolate if necessary: 
-if NLevels~=size(cmap,1) 
-   cmap = interp1(1:size(cmap,1), cmap, linspace(1,size(cmap,1),NLevels),'linear');
-end
-
-% Invert the colormap if requested by user: 
-
-if InvertedColormap
-   cmap = flipud(cmap); 
-end
-
-% Adjust values to current caxis limits? 
-
-if autopivot
-   clim = caxis; 
-   maxval = max(abs(clim-PivotValue)); 
-   cmap = interp1(linspace(-maxval,maxval,size(cmap,1))+PivotValue, cmap, linspace(clim(1),clim(2),size(cmap,1)),'linear');
-end
-
-% Clean up 
-
-if nargout==0
-   colormap(gca,cmap) 
-   clear cmap  
-end
-
-end
-
-
-function h = imagescn(varargin) 
-% imagescn behaves just like imagesc, but makes NaNs transparent, sets
-% axis to xy (aka ydirection normal) if xdata and ydata are included, and has a little more 
-% error checking than imagesc. 
-% 
-% Syntax 
-% 
-%  imagescn(C) 
-%  imagescn(x,y,C) 
-%  imagescn(x,y,C,clims) 
-%  imagescn('PropertyName',PropertyValue,...) 
-%  h = imagescn(...) 
-% 
-% Description 
-% 
-% imagescn(C) displays the data in array C as an image that uses the full range of colors in the colormap. 
-% Each element of C specifies the color for 1 pixel of the image. The resulting image is an m-by-n grid of 
-% pixels where m is the number of columns and n is the number of rows in C. The row and column indices of 
-% the elements determine the centers of the corresponding pixels. NaN values in C appear transparent. 
-% 
-% imagescn(x,y,C) specifies x and y locations of the centers of the pixels in C. If x and y are two-element
-% vectors, the outside rows and columns of C are centered on the values in x and y. Mimicking imagesc, if 
-% x or y are vectors with more than two elements, only the first and last elements of of the vectors are 
-% considered, and spacing is automatically scaled as if you entered two-element arrays. The imagescn function
-% takes this one step further, and allows you to enter x and y as 2D grids the same size as C. If x and y
-% are included, the imagescn function automatically sets axes to cartesian xy rather than the (reverse) ij axes. 
-% 
-% imagescn(x,y,C,clims) specifies the data values that map to the first and last elements of the colormap. 
-% Specify clims as a two-element vector of the form [cmin cmax], where values less than or equal to cmin 
-% map to the first color in the colormap and values greater than or equal to cmax map to the last color in 
-% the colormap.
-% 
-% imagescn('PropertyName',PropertyValue,...) specifies image properties as name-value pairs. 
-% 
-% h = imagescn(...) retrns a handle of the object created. 
-% 
-% Differences between imagesc, imagescn, and pcolor
-% The imagescn function plots data with imagesc, but after plotting, sets NaN pixels to an 
-% alpha value of 0. The imagesc function allows input coordinates x and y to be grids, which 
-% are assumed to be evenly-spaced and monotonic as if created by meshgrid. If x and y data 
-% are included when calling imagescn, y axis direction is changed from reverse to normal. 
-% 
-% The imagescn function is faster than pcolor. Pcolor (nonsensically) deletes an outside row 
-% and column of data, and pcolor also refuses to plot data points closest to any NaN holes. 
-% The imagescn function does not delete any data.  However, you may still sometimes wish to 
-% use pcolor if x,y coordinates are not evenly spaced or if you want interpolated shading. 
-% 
-% Examples 
-% For examples, type 
-% 
-%  cdt imagescn
-% 
-% Author Info 
-% 
-% This function was written by Chad A. Greene of the University of 
-% Texas Institute for Geophysics (UTIG), January 2017. 
-% http://www.chadagreene.com 
-% 
-% See also imagesc, image, and pcolor.
-% The imagesc function does not have error checking regarding number of elements
-% in xdata, ydata versus number of elements in the input image, so I'm gonna add
-% some error checking: 
-
-% Check inputs: 
-
-xydata = false; 
-if nargin>2
-   if all([isnumeric(varargin{1}) isnumeric(varargin{2})]) 
-      % This is an assumption that should typically be safe to make: 
-      xydata = true; 
-      
-      % Determine if input coordinates are meshgrid type and if so, convert to vector: 
-      if isequal(size(varargin{1}),size(varargin{2}),size(varargin{3}))
-         X = varargin{1}; 
-         Y = varargin{2}; 
-         
-         varargin{1} = [X(1,1) X(end,end)]; 
-         varargin{2} = [Y(1,1) Y(end,end)]; 
-      end
-   end
-end
-
-% Plot
-
-% Plot imagesc: 
-h = imagesc(varargin{:}); 
-
-% Make NaNs transparent: 
-cd = get(h,'CData'); 
-set(h,'alphadata',isfinite(cd)); 
-
-if xydata
-   axis xy
-end
-
-if nargout==0
-   clear h
-end
-
-end
 
