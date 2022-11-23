@@ -41,6 +41,14 @@
 % TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     %
 % SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                %
 %                                                                       %
+% Other software packages used in Kori-ULB:                             %
+%                                                                       %
+%   - crameri: Fabio Crameri's scientific colormaps, version 4.0.       %
+%              http://www.fabiocrameri.ch/colourmaps.php                %
+%   - convnfft, conv2fft:  Bruno Luong <brunoluong@yahoo.com>           %
+%   - imagescn: C. Greene (UTIG, Texas) http://www.chadagreene.com      %
+%   - TopoZeko: H. Zekollari, SoftwareX 6 (2017) 285-292                %
+%                                                                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Today's scientists have substituted mathematics for experiments,
@@ -59,12 +67,14 @@
 % -Local and non-local isostatic adjustment (ELRA model) with spatially
 %     varying flexural rigidity and asthenosphere viscosity
 % -General slip law (viscous - power law - regularized Coulomb)
-% -Grounding line parameterization with buttressing
-% -Nudging procedure to determine spatially-varying basal slip coefficient
+% -Grounding line parameterization with buttressing (optional)
+% -Nudging method to determine spatially-varying basal slip coefficients
+% -Nudging method to optimize sub-shelf mass balance for steady-state
 % -PICO/PICOP/Plume ocean model for sub-shelf melt calculation
 % -Calving, hydrofracturing and damage
 % -Subglacial hydrology and till deformation
 % -PDD model for surface melt
+% -Colorblind-friendly output figures
 %
 %-----------------------------------------------------------------
 % Model call
@@ -542,7 +552,7 @@ for cnt=cnt0:ctr.nsteps
 
 	if ctr.glMASKexist==1 && ctr.inverse==0
 		% Update ocean forcing based on external forcing data
-		[Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEAN_update(fc,ctr,time,cnt, ...
+		[Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt, ...
             So0,To0,Tof,Sof,TFf,cnt_ocn,snp_ocn);
 
 		% Extrapolate To and Tf to the depth of interest according 
