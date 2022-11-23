@@ -1,7 +1,7 @@
 # Kori-dev
-Kori-ULB ice flow model (development)
+**Kori-ULB ice flow model (development)**
 
-Features
+**Features**
 
 -2D Finite difference ice sheet/ice shelf model
 -SSA-SIA hybrid velocity calculation (on Arakawa C grids)
@@ -19,14 +19,14 @@ Features
 -PDD model for surface melt
 
 
-Model call
+**Model call**
 
   KoriModel(infile,outfile,ctr)
               or
   KoriModel(infile,outfile,ctr,fc)
 
 
-Model input
+**Model input**
 
 Main Matlab files: KoriModel.m, KoriInputParams.m (and subroutines)
 
