@@ -17,7 +17,7 @@
 
 -General slip law (viscous - power law - regularized Coulomb)
 
--Grounding line parameterization with buttressing
+-Grounding line parameterization with buttressing (optional)
 
 -Nudging procedure to determine spatially-varying basal slip coefficient
 
