@@ -1,6 +1,7 @@
 # Kori-dev
 **Kori-ULB ice flow model (development)**
 
+
 **Features**
 
 -2D Finite difference ice sheet/ice shelf model
@@ -19,16 +20,19 @@
 
 -Grounding line parameterization with buttressing (optional)
 
--Nudging procedure to determine spatially-varying basal slip coefficient
+-Nudging method to determine spatially-varying basal slip coefficients
+
+-Nudging method to optimize sub-shelf mass balance for steady-state
 
 -PICO/PICOP/Plume ocean model for sub-shelf melt calculation
-
 
 -Calving, hydrofracturing and damage
 
 -Subglacial hydrology and till deformation
 
 -PDD model for surface melt
+
+-Colorblind-friendly output figures
 
 
 **Model call**
