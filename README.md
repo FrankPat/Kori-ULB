@@ -1,6 +1,7 @@
 # Kori-dev
 **Kori-ULB ice flow model (development)**
 
+![Kori](https://user-images.githubusercontent.com/62480664/203604863-fee65269-f2e1-4229-ad6c-d16644c9e0e1.png)
 
 **Features**
 
