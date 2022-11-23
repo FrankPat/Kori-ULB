@@ -5,7 +5,7 @@
 
 **Features**
 
--2D Finite difference ice sheet/ice shelf model
+-2.5D Finite difference ice sheet/ice shelf model
 
 -SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 
