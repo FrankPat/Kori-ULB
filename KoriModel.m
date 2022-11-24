@@ -47,7 +47,6 @@
 %              http://www.fabiocrameri.ch/colourmaps.php                %
 %   - convnfft, conv2fft:  Bruno Luong <brunoluong@yahoo.com>           %
 %   - imagescn: C. Greene (UTIG, Texas) http://www.chadagreene.com      %
-%   - TopoZeko: H. Zekollari, SoftwareX 6 (2017) 285-292                %
 %                                                                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -59,7 +58,7 @@
 %-----------------------------------------------------------------
 % Model Features
 %-----------------------------------------------------------------
-% -2D Finite difference ice sheet/ice shelf model
+% -2.5D Finite difference ice sheet/ice shelf model
 % -SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 % -SIA diffusive calculation (on Arakawa B-grid)
 % -3D temperature field
@@ -111,9 +110,10 @@ function KoriModel(infile,outfile,ctr,fc)
 % model version
 %-------------------
 
+ctr.model='Kori-ULB';
 ctr.version='v0.9';
-fprintf('---Kori-ULB %s---\n  [%s Frank.Pattyn@ulb.be]\n',ctr.version,char(169));
-
+fprintf('---%s %s---\n  [%s Frank.Pattyn@ulb.be]\n',ctr.model, ...
+    ctr.version,char(169));
 
 %---------------------------------------------------------------
 % Determine whether and what forcing is used
