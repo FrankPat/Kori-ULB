@@ -651,7 +651,7 @@ for cnt=cnt0:ctr.nsteps
         InvVol(cnt,1)=sum(abs(sn(MASK==1)-sn0(MASK==1)));
         InvVol(cnt,2)=sum(sn(MASK==1)-sn0(MASK==1));
         if ctr.shelf==1
-            InvVol(cnt,3)=nanmean(H(shMASK==1)-Ho(shMASK==1));
+            InvVol(cnt,3)=mean(H(shMASK==1)-Ho(shMASK==1),'omitnan');
         end
     end
     
@@ -715,7 +715,7 @@ for cnt=cnt0:ctr.nsteps
             outputname=[outfile,'_toto'];
             save(outputname);
             if ctr.runmode==5
-                meltdown; break;
+                MeltDown; break;
             end
         end
     end
