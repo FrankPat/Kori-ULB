@@ -16,7 +16,7 @@ function Arc=ExtrapolateArc(MASK,oldMASK,Arc,Arc0,ctr)
     Me(:,:,6)=circshift(OldArc,[-1 -1]);
     Me(:,:,7)=circshift(OldArc,[0 -1]);
     Me(:,:,8)=circshift(OldArc,[1 -1]);
-    NewArc=nanmean(Me,3); % Take mean of neighbours for which Arc exists
+    NewArc=mean(Me,3,'omitnan'); % Take mean of neighbours for which Arc exists
     NewArc(isnan(NewArc))=0;
     Arc(dMASK==-1)=NewArc(dMASK==-1); % Apply Arc for points becoming floated
     % Apply Arc for points that were previously determined

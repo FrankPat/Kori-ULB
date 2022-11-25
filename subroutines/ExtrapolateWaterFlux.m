@@ -16,7 +16,7 @@ function Wd=ExtrapolateWaterFlux(MASK,oldMASK,Wd,Wd0,ctr,par)
     WD(:,:,6)=circshift(OldWD,[-1 -1]);
     WD(:,:,7)=circshift(OldWD,[0 -1]);
     WD(:,:,8)=circshift(OldWD,[1 -1]);
-    NewWD=nanmean(WD,3); % Take mean of neighbours for which Wd exists
+    NewWD=mean(WD,3,'omitnan'); % Take mean of neighbours for which Wd exists
     NewWD(isnan(NewWD))=par.Wdmin;
     Wd(dMASK==1)=NewWD(dMASK==1); % Apply depth for points becoming grounded
     % Apply flw depths for points that were previously determined
