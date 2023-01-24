@@ -1,4 +1,4 @@
-function [damage,eta]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK)
+function [damage]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF)
 
 % Kori-ULB
 % compute total crevasse depth d, either 0, the surface crevasse depth or
@@ -18,10 +18,8 @@ function [damage,eta]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK)
     db=(lambda0./(par.rho*par.g*(H+eps))-max(HAF,0))*par.rho/(par.rhow-par.rho);
     % surface crevasses
     ds=lambda0./(par.rho*par.g*(H+eps))+par.rhow*dw/par.rho;
+%     damage=max(0,min(max(ds,ds+db),H*par.dlim));
     damage=max(0,min(max(ds,ds+db),H*par.dlim));
-%     damage(MASK==1)=0; % only consider damage on ice shelves
-    scale_eta=(H-min(damage,H-eps))./(H+eps);
-    eta=eta.*scale_eta;
     
 end
 

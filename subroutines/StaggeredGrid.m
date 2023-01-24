@@ -1,5 +1,5 @@
-function [gradm,gradmx,gradmy,gradxy,Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]= ...
-        StaggeredGrid(sn,H,B,ctr)
+function [gradm,gradmx,gradmy,gradxy,gradsx,gradsy,gradHx,gradHy, ...
+    Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]=StaggeredGrid(sn,H,B,ctr)
 
 % Kori-ULB
 % Variables on staggered grids
@@ -13,7 +13,16 @@ function [gradm,gradmx,gradmy,gradxy,Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]= ...
     Hm=(H+circshift(H,[-1 0])+circshift(H,[0 -1])+circshift(H,[-1 -1]))/4.; 
     gradm=((sn2+sn3-sn-sn1)/(2*ctr.delta)).^2+((sn1+sn3-sn-sn2)/(2*ctr.delta)).^2;
     gradxy=((sn2-sn4)/(2*ctr.delta)).^2+((sn1-sn5)/(2*ctr.delta)).^2;
-   
+    
+    H1=circshift(H,[-1 0]); % sn(i+1,j)
+    H2=circshift(H,[0 -1]); % sn(i,j+1)
+    H4=circshift(H,[0 1]); % sn(i,j-1)
+    H5=circshift(H,[1 0]); % sn(i-1,j)
+    gradsx=(sn2-sn4)/(2*ctr.delta);
+    gradsy=(sn1-sn5)/(2*ctr.delta);
+    gradHx=(H2-H4)/(2*ctr.delta);
+    gradHy=(H1-H5)/(2*ctr.delta);
+    
     gradmx=(sn2-sn)/ctr.delta;
     Hmx=(H+circshift(H,[0 -1]))/2.;
     Bmx=(B+circshift(B,[0 -1]))/2.;

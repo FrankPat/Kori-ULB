@@ -1,11 +1,13 @@
 function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy,damage]= ...
     SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
     uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
-    nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy)
+    nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
+    Mb,Melt,dtdx,dtdx2,VM,damage)
 
 % Kori-ULB
 % Iterative solution to the SSA velocity (both pure SSA and hybrid model
 
+    eps=1e-8;
     taudx=par.rho*par.g*Hmx.*sqrt(gradmx).*signx;
     taudy=par.rho*par.g*Hmy.*sqrt(gradmy).*signy;
     ussa=vec2h(uxssa,uyssa);    %VL: ussa on h-grid
@@ -51,13 +53,23 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy,damage]= ..
         udx=zeros(ctr.imax,ctr.jmax);
         udy=zeros(ctr.imax,ctr.jmax);
     end
+    if ctr.damage==1 && cnt>1
+        dtr=TransportDamage(node,nodes,damage,Mb,Melt,H,glMASK,dtdx,dtdx2, ...
+            uxssa,uyssa,ctr,cnt,bMASK,VM,par);
+    end
     for ll=1:par.visciter % iteration over effective viscosity
         [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,eta1,MASK,ctr);
         if ctr.damage==1 && cnt>1
-            [damage,eta]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK);
+%             if ll==1
+                damage=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF);
+                damage=min(par.damlim*H,max(damage,dtr));
+                scale_eta=(H-min(damage,H-eps))./(H+eps);
+%             end
         else
+            scale_eta=1;
             damage=zeros(ctr.imax,ctr.jmax);
         end
+        eta=eta.*scale_eta;
         if ctr.shelf==1 || ctr.schoof>0
             eta(glMASK==6)=1e7;
         end
