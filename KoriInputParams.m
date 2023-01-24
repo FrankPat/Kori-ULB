@@ -5,7 +5,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2022 Frank Pattyn                                       %
+% Copyright (c) 2023 Frank Pattyn                                       %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -45,7 +45,7 @@ par.maxspeed=40e3; % maximum ice speed limit (m/a)
 par.omega=2.5; % Crank-Nicolson scale factor (0=explicit; 1=implicit; >1 over-implicit)
 par.secperyear=31556926;
 % 2d variables to be saved when timeslice=1
-par.varlist={'MASK','H','ux','uy','flux','Tbc','SLR','Neff','Melt'};
+par.varlist={'MASK','H','B','ux','uy','flux','Tbc','SLR','Neff','Melt'};
 
 
 %-----------------------------------
@@ -89,7 +89,8 @@ end
 par.Hiter=20; %VL: max iteration number for iterative thickness solver (20)
 par.Htol=1e-6;  %VL: tolerance for iterative thickness solver (1e-6)
 par.Z=2*(par.g*par.rho)^par.n; % SIA isothermal pre-term
-par.dlim=0.5; % Limit on crevasses depth;
+par.dlim=0.5; % Limit on local crevasses depth (% of H)
+par.damlim=0.9; % limit on total damage (% of H)
 
 %-----------------------------------
 % Ice-ocean interactions
