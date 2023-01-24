@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                 Kori-ULB: The ULB ice flow model                      %
 %                                                                       %
-%                     Version 0.9 November 2022                         %
+%                      Version 0.9 January 2023                         %
 %                                                                       %
 %                           Frank Pattyn                                %
 %                    Laboratoire de Glaciologie                         %
@@ -21,7 +21,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2022 Frank Pattyn                                       %
+% Copyright (c) 2023 Frank Pattyn                                       %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -42,6 +42,13 @@
 % TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     %
 % SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                %
 %                                                                       %
+% Other software packages used in Kori-ULB:                             %
+%                                                                       %
+%   - crameri: Fabio Crameri's scientific colormaps, version 4.0.       %
+%              http://www.fabiocrameri.ch/colourmaps.php                %
+%   - convnfft, conv2fft:  Bruno Luong <brunoluong@yahoo.com>           %
+%   - imagescn: C. Greene (UTIG, Texas) http://www.chadagreene.com      %
+%                                                                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Today's scientists have substituted mathematics for experiments,
@@ -52,7 +59,7 @@
 %-----------------------------------------------------------------
 % Model Features
 %-----------------------------------------------------------------
-% -2D Finite difference ice sheet/ice shelf model
+% -2.5D Finite difference ice sheet/ice shelf model
 % -SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 % -SIA diffusive calculation (on Arakawa B-grid)
 % -3D temperature field
@@ -60,12 +67,14 @@
 % -Local and non-local isostatic adjustment (ELRA model) with spatially
 %     varying flexural rigidity and asthenosphere viscosity
 % -General slip law (viscous - power law - regularized Coulomb)
-% -Grounding line parameterization with buttressing
-% -Nudging procedure to determine spatially-varying basal slip coefficient
+% -Grounding line parameterization with buttressing (optional)
+% -Nudging method to determine spatially-varying basal slip coefficients
+% -Nudging method to optimize sub-shelf mass balance for steady-state
 % -PICO/PICOP/Plume ocean model for sub-shelf melt calculation
 % -Calving, hydrofracturing and damage
 % -Subglacial hydrology and till deformation
 % -PDD model for surface melt
+% -Colorblind-friendly output figures
 %
 %-----------------------------------------------------------------
 % Model call
@@ -102,9 +111,10 @@ function KoriModel(infile,outfile,ctr,fc)
 % model version
 %-------------------
 
+ctr.model='Kori-ULB';
 ctr.version='v0.9';
-fprintf('---Kori-ULB %s---\n  [%s Frank.Pattyn@ulb.be]\n',ctr.version,char(169));
-
+fprintf('---%s %s---\n  [%s Frank.Pattyn@ulb.be]\n',ctr.model, ...
+    ctr.version,char(169));
 
 %---------------------------------------------------------------
 % Determine whether and what forcing is used
@@ -174,7 +184,8 @@ slicecount=0;
     MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
     dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt, ...
     CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
-    TFf,Tsf,Mbf,Prf,Evpf,runofff]=InitMatrices(ctr,par,default,fc);
+    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage]= ...
+    InitMatrices(ctr,par,default,fc);
 
 %----------------------------------------------------------------------
 % Read inputdata
@@ -390,8 +401,8 @@ for cnt=cnt0:ctr.nsteps
 % Optionally define shelf mask and ice shelf numbering
 %------------------------------------------------------
 
-    [gradm,gradmx,gradmy,gradxy,Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]= ...
-        StaggeredGrid(sn,H,B,ctr);
+    [gradm,gradmx,gradmy,gradxy,gradsx,gradsy,gradHx,gradHy, ...
+        Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]=StaggeredGrid(sn,H,B,ctr);
     [bMASKm,bMASKx,bMASKy]=StaggeredBMASK(ctr,bMASK);
 
     % Searching GL on H-grid (define MASK & glMASK)
@@ -441,16 +452,17 @@ for cnt=cnt0:ctr.nsteps
             if ctr.Tinit<2
                 if ctr.shelf==1 && ctr.SSA>=1 && cnt>1
                     [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-                        ctr,ctr.dt*par.intT,ud,udx,udy,vec2h(uxssa,uyssa), ...
-                        uxssa,uyssa,zeta,gradxy,H,dzc,dzm,dzp,G,taudxy, ...
-                        A,fc.DeltaT,MASK,cnt);
+                        ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                        udx,udy,vec2h(uxssa,uyssa),uxssa,uyssa,zeta, ...
+                        gradxy,H,dzc,dzm,dzp,G,taudxy, ...
+                        A,fc.DeltaT,MASK,Bmelt,cnt);
                     Bmelt=BasalMelting(ctr,par,G,taudxy, ...
                         vec2h(uxssa,uyssa),H,tmp,dzm,MASK);
                 else
                     [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-                        ctr,ctr.dt*par.intT,ud,udx,udy,ub,ubx, ...
-                        uby,zeta,gradxy,H,dzc,dzm,dzp,G,taudxy, ...
-                        A,fc.DeltaT,MASK,cnt);
+                        ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                        udx,udy,ub,ubx,uby,zeta,gradxy,H,dzc,dzm,dzp, ...
+                        G,taudxy,A,fc.DeltaT,MASK,Bmelt,cnt);
                     Bmelt=BasalMelting(ctr,par,G,taudxy,ub,H,tmp,dzm,MASK);
                 end
             end
@@ -499,7 +511,8 @@ for cnt=cnt0:ctr.nsteps
         [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy,damage]= ...
             SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
             uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
-            nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy);
+            nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
+            Mb,Melt,dtdx,dtdx2,VM,damage);
     else
         ux=uxsia;
         uy=uysia;
@@ -543,7 +556,7 @@ for cnt=cnt0:ctr.nsteps
 
 	if ctr.glMASKexist==1 && ctr.inverse==0
 		% Update ocean forcing based on external forcing data
-		[Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEAN_update(fc,ctr,time,cnt, ...
+		[Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt, ...
             So0,To0,Tof,Sof,TFf,cnt_ocn,snp_ocn);
 
 		% Extrapolate To and Tf to the depth of interest according 
@@ -642,7 +655,7 @@ for cnt=cnt0:ctr.nsteps
         InvVol(cnt,1)=sum(abs(sn(MASK==1)-sn0(MASK==1)));
         InvVol(cnt,2)=sum(sn(MASK==1)-sn0(MASK==1));
         if ctr.shelf==1
-            InvVol(cnt,3)=nanmean(H(shMASK==1)-Ho(shMASK==1));
+            InvVol(cnt,3)=mean(H(shMASK==1)-Ho(shMASK==1),'omitnan');
         end
     end
     
@@ -706,7 +719,7 @@ for cnt=cnt0:ctr.nsteps
             outputname=[outfile,'_toto'];
             save(outputname);
             if ctr.runmode==5
-                meltdown; break;
+                MeltDown; break;
             end
         end
     end
@@ -1934,7 +1947,7 @@ function Arc=ExtrapolateArc(MASK,oldMASK,Arc,Arc0,ctr)
     Me(:,:,6)=circshift(OldArc,[-1 -1]);
     Me(:,:,7)=circshift(OldArc,[0 -1]);
     Me(:,:,8)=circshift(OldArc,[1 -1]);
-    NewArc=nanmean(Me,3); % Take mean of neighbours for which Arc exists
+    NewArc=mean(Me,3,'omitnan'); % Take mean of neighbours for which Arc exists
     NewArc(isnan(NewArc))=0;
     Arc(dMASK==-1)=NewArc(dMASK==-1); % Apply Arc for points becoming floated
     % Apply Arc for points that were previously determined
@@ -1961,7 +1974,7 @@ function Wd=ExtrapolateWaterFlux(MASK,oldMASK,Wd,Wd0,ctr,par)
     WD(:,:,6)=circshift(OldWD,[-1 -1]);
     WD(:,:,7)=circshift(OldWD,[0 -1]);
     WD(:,:,8)=circshift(OldWD,[1 -1]);
-    NewWD=nanmean(WD,3); % Take mean of neighbours for which Wd exists
+    NewWD=mean(WD,3,'omitnan'); % Take mean of neighbours for which Wd exists
     NewWD(isnan(NewWD))=par.Wdmin;
     Wd(dMASK==1)=NewWD(dMASK==1); % Apply depth for points becoming grounded
     % Apply flw depths for points that were previously determined
@@ -2661,7 +2674,8 @@ function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
     dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo,MASKo,Mb,Ts,As,G,u,VAF,VA0,POV, ...
     SLC,Ag,Af,Btau,IVg,IVf,glflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR, ...
     Wd,Wtil,Bmelt,CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof, ...
-    Sof,TFf,Tsf,Mbf,Prf,Evpf,runofff]=InitMatrices(ctr,par,default,fc)
+    Sof,TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage]= ...
+    InitMatrices(ctr,par,default,fc)
     
 % Kori-ULB
 % Initialization of main matrices used in the model
@@ -2692,7 +2706,7 @@ function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
     %------------------------------
     
     [H,Ho,B,Bo,Mb,Ts,u,dSLR,CMB,FMB,Tof,Sof,TFf,Tsf,Mbf,Prf,Evpf, ...
-        runofff]=deal(zeros(ctr.imax,ctr.jmax));
+        runofff,Melt,damage]=deal(zeros(ctr.imax,ctr.jmax));
     [MASK,MASKo,ncor]=deal(ones(ctr.imax,ctr.jmax));
     [VAF,VA0,POV,SLC,Ag,Af,IVg,IVf,glflux,dHdt]=deal(zeros(ctr.nsteps,1));
     G=zeros(ctr.imax,ctr.jmax)+default.G0;
@@ -2772,8 +2786,8 @@ function tmp=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts,MASK,DeltaT)
     repTs=repmat(Ts,[1,1,ctr.kmax]);
     repTgrad=repmat(Tgrad,[1,1,ctr.kmax]);
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
-    tmp=flip(repTs+sqrt(pi)*0.5*repl.*repTgrad.* ...
-        (erf(repz.*repH./repl)-erf(repH./repl)),3)+par.T0;
+    tmp=repTs+sqrt(pi)*0.5*repl.*repTgrad.* ...
+        (erf((1-repz).*repH./repl)-erf(repH./repl))+par.T0;
     Tp=par.pmp*repH.*repz;
 
     % Ice shelf and open ocean
@@ -3205,7 +3219,7 @@ angnorm = atan2(zavy,zavx);
 end
 
 
-function [damage,eta]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK)
+function [damage]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF)
 
 % Kori-ULB
 % compute total crevasse depth d, either 0, the surface crevasse depth or
@@ -3225,80 +3239,9 @@ function [damage,eta]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK)
     db=(lambda0./(par.rho*par.g*(H+eps))-max(HAF,0))*par.rho/(par.rhow-par.rho);
     % surface crevasses
     ds=lambda0./(par.rho*par.g*(H+eps))+par.rhow*dw/par.rho;
+%     damage=max(0,min(max(ds,ds+db),H*par.dlim));
     damage=max(0,min(max(ds,ds+db),H*par.dlim));
-%     damage(MASK==1)=0; % only consider damage on ice shelves
-    scale_eta=(H-min(damage,H-eps))./(H+eps);
-    eta=eta.*scale_eta;
     
-end
-
-
-function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEAN_update(fc,ctr,time,cnt,So0,To0,Tof,Sof,TFf,cnt_ocn,snp_ocn)
-
-    if fc.forcingOCEAN==1
-        if time(cnt)==fc.ocn_Tinit % Initialise at first snapshot year
-            cnt_ocn=1;
-            snp_ocn=1;
-        end
-        if cnt_ocn==1 % snapshot
-            if time(cnt)<=fc.ocn_Tend
-                if any(ismember(fields(fc),'ocn_TF_fname'))
-                    load([fc.ocn_TF_fname,num2str(snp_ocn,'%03i')]);
-                    TFf=double(TF); % make sure matrix is double
-                    Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
-                    Sof=So0;
-                else % If TF forcing does not exist, check for To or So forcing
-                    TFf=false;
-                    if any(ismember(fields(fc),'ocn_To_fname'))
-                        load([fc.ocn_To_fname,num2str(snp_ocn,'%03i')]);
-                        Tof=double(To); % make sure matrix is double
-                    else
-                        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
-                    end
-                    if any(ismember(fields(fc),'ocn_So_fname'))
-                        load([fc.ocn_So_fname,num2str(snp_ocn,'%03i')]);
-                        Sof=double(So); % make sure matrix is double
-                    else
-                        Sof=So0;
-                    end
-                end
-                snp_ocn=snp_ocn+1;
-            else % If forcing shorter than simulation time
-                if snp_ocn==fc.ocn_snapshots+1
-                    snp_ocn=fc.ocn_snapshots+1-fc.ocn_nrep; % Re-initialise snapshot
-                end
-                if any(ismember(fields(fc),'ocn_TF_fname'))
-                    load([fc.ocn_TF_fname,num2str(snp_ocn,'%03i')]);
-                    TFf=double(TF); % make sure matrix is double
-                    Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
-                    Sof=So0;
-                else % If TF forcing does not exist, check for To or So forcing
-                    TFf=false;
-                    if any(ismember(fields(fc),'ocn_To_fname'))
-                        load([fc.ocn_To_fname,num2str(snp_ocn,'%03i')]);
-                        Tof=double(To); % make sure matrix is double
-                    else
-                        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
-                    end
-                    if any(ismember(fields(fc),'ocn_So_fname'))
-                        load([fc.ocn_So_fname,num2str(snp_ocn,'%03i')]);
-                        Sof=double(So); % make sure matrix is double
-                    else
-                        Sof=So0;
-                    end
-                end
-                snp_ocn=snp_ocn+1;
-            end
-        end
-        cnt_ocn=cnt_ocn+1;
-        cnt_ocn(cnt_ocn>fc.ocn_cnt)=1;
-    else
-        TFf=false;
-        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
-        Sof=So0;
-    end
-
-
 end
 
 
@@ -3386,53 +3329,134 @@ function [To,So,TF]=OCEANdepthOfInt(fc,ctr,par,Tof,Sof,TFf,H,HB,B,MASK,glMASK,Sh
 end
 
 
-function [arcocn,distocn,distgl]=OceanArc(MASK,H,MASKlk,ctr,par)
+function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
+    To0,Tof,Sof,TFf,cnt_ocn,snp_ocn)
 
-arcocn=zeros(ctr.imax,ctr.jmax);
-distocn=zeros(ctr.imax,ctr.jmax)+1000e3;
-distgl=zeros(ctr.imax,ctr.jmax)+10000e3;
-narc=72; % number of directions (every 5 degree)
-angarc=zeros(1,narc);
-tanarc=zeros(1,narc);
-ifi=zeros(1,narc);
-idir=zeros(1,narc);
-MASK(MASK==0&H>par.SeaIceThickness)=3;  %mark shelves in MASK
-MASK1=circshift(MASK,[0 -1]); % MASK(i,j+1)
-MASK2=circshift(MASK,[0 1]); % MASK(i,j-1)
-MASK3=circshift(MASK,[-1 0]); % MASK(i+1,j)
-MASK4=circshift(MASK,[1 0]); % MASK(i-1,j)
-MASK5=circshift(MASK,[-1 -1]); % MASK(i+1,j+1)
-MASK6=circshift(MASK,[-1 1]); % MASK(i+1,j-1)
-MASK7=circshift(MASK,[1 -1]); % MASK(i-1,j+1)
-MASK8=circshift(MASK,[1 1]); % MASK(i-1,j-1)
-ifdo=zeros(ctr.imax,ctr.jmax);
-ifdo(MASK~=1&MASKlk==0&(MASK1~=0|MASK2~=0|MASK3~=0|MASK4~=0|MASK5~=0|MASK6~=0|MASK7~=0|MASK8~=0))=1;
-[jo,io] = meshgrid(1:ctr.imax,1:ctr.jmax);
-distocn(MASK==0)=0;
+% Kori-ULB
+% Update ocean forcing based on external forcing data
 
-for mm=1:narc
-    angarc(mm)=-pi+(mm-0.5)*(2*pi)/narc;
-    tanarc(mm)=tan(angarc(mm));
-    if abs(angarc(mm))>=0.75*pi
-        ifi(mm)=1;
-        idir(mm)=-1;
-    elseif angarc(mm)>=-0.75*pi && angarc(mm)<=-0.25*pi
-        ifi(mm)=0;
-        idir(mm)=-1;
-    elseif abs(angarc(mm))<=0.25*pi
-        ifi(mm)=1;
-        idir(mm)=1;
+    if fc.forcingOCEAN==1
+        if time(cnt)==fc.ocn_Tinit % Initialise at first snapshot year
+            cnt_ocn=1;
+            snp_ocn=1;
+        end
+        if cnt_ocn==1 % snapshot
+            if time(cnt)<=fc.ocn_Tend
+                if any(ismember(fields(fc),'ocn_TF_fname'))
+                    load([fc.ocn_TF_fname,num2str(snp_ocn,'%03i')]);
+                    TFf=double(TF); % make sure matrix is double
+                    Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                    % simplified forcing otherwise
+                    Sof=So0;
+                else % If TF forcing does not exist, check for To or So forcing
+                    TFf=false;
+                    if any(ismember(fields(fc),'ocn_To_fname'))
+                        load([fc.ocn_To_fname,num2str(snp_ocn,'%03i')]);
+                        Tof=double(To); % make sure matrix is double
+                    else
+                        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                        % simplified forcing otherwise
+                    end
+                    if any(ismember(fields(fc),'ocn_So_fname'))
+                        load([fc.ocn_So_fname,num2str(snp_ocn,'%03i')]);
+                        Sof=double(So); % make sure matrix is double
+                    else
+                        Sof=So0;
+                    end
+                end
+                snp_ocn=snp_ocn+1;
+            else % If forcing shorter than simulation time
+                if snp_ocn==fc.ocn_snapshots+1
+                    snp_ocn=fc.ocn_snapshots+1-fc.ocn_nrep; 
+                    % Re-initialise snapshot
+                end
+                if any(ismember(fields(fc),'ocn_TF_fname'))
+                    load([fc.ocn_TF_fname,num2str(snp_ocn,'%03i')]);
+                    TFf=double(TF); % make sure matrix is double
+                    Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                    % simplified forcing otherwise
+                    Sof=So0;
+                else % If TF forcing does not exist, check for To or So forcing
+                    TFf=false;
+                    if any(ismember(fields(fc),'ocn_To_fname'))
+                        load([fc.ocn_To_fname,num2str(snp_ocn,'%03i')]);
+                        Tof=double(To); % make sure matrix is double
+                    else
+                        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                        % simplified forcing otherwise
+                    end
+                    if any(ismember(fields(fc),'ocn_So_fname'))
+                        load([fc.ocn_So_fname,num2str(snp_ocn,'%03i')]);
+                        Sof=double(So); % make sure matrix is double
+                    else
+                        Sof=So0;
+                    end
+                end
+                snp_ocn=snp_ocn+1;
+            end
+        end
+        cnt_ocn=cnt_ocn+1;
+        cnt_ocn(cnt_ocn>fc.ocn_cnt)=1;
     else
-        ifi(mm)=0;
-        idir(mm)=1;
+        TFf=false;
+        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
+        Sof=So0;
     end
+
 end
 
-[arcocn(ifdo==1),distocn(ifdo==1),distgl(ifdo==1)]=arrayfun(@(io,jo) CalcOceanArc(io,jo,MASK,ctr.imax,ctr.jmax,ctr.delta,narc,tanarc,ifi,idir),io(ifdo==1),jo(ifdo==1));
 
-arcocn(MASK~=1&ifdo==0&MASKlk==0)=360;
-distocn(MASK==0)=0;
-distgl(MASK~=1&ifdo==0)=0;
+function [arcocn,distocn,distgl]=OceanArc(MASK,H,MASKlk,ctr,par)
+
+% Kori-ULB
+% Calculation of the angle of ice shelves to open ocean (Pollard and
+% DeConto)
+
+    arcocn=zeros(ctr.imax,ctr.jmax);
+    distocn=zeros(ctr.imax,ctr.jmax)+1000e3;
+    distgl=zeros(ctr.imax,ctr.jmax)+10000e3;
+    narc=72; % number of directions (every 5 degree)
+    angarc=zeros(1,narc);
+    tanarc=zeros(1,narc);
+    ifi=zeros(1,narc);
+    idir=zeros(1,narc);
+    MASK(MASK==0&H>par.SeaIceThickness)=3;  %mark shelves in MASK
+    MASK1=circshift(MASK,[0 -1]); % MASK(i,j+1)
+    MASK2=circshift(MASK,[0 1]); % MASK(i,j-1)
+    MASK3=circshift(MASK,[-1 0]); % MASK(i+1,j)
+    MASK4=circshift(MASK,[1 0]); % MASK(i-1,j)
+    MASK5=circshift(MASK,[-1 -1]); % MASK(i+1,j+1)
+    MASK6=circshift(MASK,[-1 1]); % MASK(i+1,j-1)
+    MASK7=circshift(MASK,[1 -1]); % MASK(i-1,j+1)
+    MASK8=circshift(MASK,[1 1]); % MASK(i-1,j-1)
+    ifdo=zeros(ctr.imax,ctr.jmax);
+    ifdo(MASK~=1&MASKlk==0&(MASK1~=0|MASK2~=0|MASK3~=0|MASK4~=0|MASK5~=0|MASK6~=0|MASK7~=0|MASK8~=0))=1;
+    [io,jo] = meshgrid(1:ctr.imax,1:ctr.jmax);
+    distocn(MASK==0)=0;
+
+    for mm=1:narc
+        angarc(mm)=-pi+(mm-0.5)*(2*pi)/narc;
+        tanarc(mm)=tan(angarc(mm));
+        if abs(angarc(mm))>=0.75*pi
+            ifi(mm)=1;
+            idir(mm)=-1;
+        elseif angarc(mm)>=-0.75*pi && angarc(mm)<=-0.25*pi
+            ifi(mm)=0;
+            idir(mm)=-1;
+        elseif abs(angarc(mm))<=0.25*pi
+            ifi(mm)=1;
+            idir(mm)=1;
+        else
+            ifi(mm)=0;
+            idir(mm)=1;
+        end
+    end
+
+    [arcocn(ifdo==1),distocn(ifdo==1),distgl(ifdo==1)]=arrayfun(@(io,jo) CalcOceanArc(io,jo,MASK,ctr.imax,ctr.jmax,ctr.delta,narc,tanarc,ifi,idir),io(ifdo==1),jo(ifdo==1));
+
+    arcocn(MASK~=1&ifdo==0&MASKlk==0)=360;
+    distocn(MASK==0)=0;
+    distgl(MASK~=1&ifdo==0)=0;
 end
 
 
@@ -4129,11 +4153,13 @@ end
 function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy,damage]= ...
     SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
     uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
-    nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy)
+    nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
+    Mb,Melt,dtdx,dtdx2,VM,damage)
 
 % Kori-ULB
 % Iterative solution to the SSA velocity (both pure SSA and hybrid model
 
+    eps=1e-8;
     taudx=par.rho*par.g*Hmx.*sqrt(gradmx).*signx;
     taudy=par.rho*par.g*Hmy.*sqrt(gradmy).*signy;
     ussa=vec2h(uxssa,uyssa);    %VL: ussa on h-grid
@@ -4179,13 +4205,23 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy,damage]= ..
         udx=zeros(ctr.imax,ctr.jmax);
         udy=zeros(ctr.imax,ctr.jmax);
     end
+    if ctr.damage==1 && cnt>1
+        dtr=TransportDamage(node,nodes,damage,Mb,Melt,H,glMASK,dtdx,dtdx2, ...
+            uxssa,uyssa,ctr,cnt,bMASK,VM,par);
+    end
     for ll=1:par.visciter % iteration over effective viscosity
         [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,eta1,MASK,ctr);
         if ctr.damage==1 && cnt>1
-            [damage,eta]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK);
+%             if ll==1
+                damage=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF);
+                damage=min(par.damlim*H,max(damage,dtr));
+                scale_eta=(H-min(damage,H-eps))./(H+eps);
+%             end
         else
+            scale_eta=1;
             damage=zeros(ctr.imax,ctr.jmax);
         end
+        eta=eta.*scale_eta;
         if ctr.shelf==1 || ctr.schoof>0
             eta(glMASK==6)=1e7;
         end
@@ -4746,9 +4782,6 @@ function [H]=SparseSolverIceThickness(node,nodes,Mb,H,B,SLR,MASK,dtdx,dtdx2, ...
 end
 
 
-%--------------------------------------
-
-%--------------------------------------
 function [u,v,s]=SparseSolverSSA(nodeu,nodev,s0,MASKmx,MASKmy,bMASK, ...
     H,eta,betax,betay,u,v,usia,vsia,udx,udy,taudx,taudy,ctr,par)
 
@@ -5399,8 +5432,8 @@ function [bMASKm,bMASKx,bMASKy]=StaggeredBMASK(ctr,bMASK)
 end
 
 
-function [gradm,gradmx,gradmy,gradxy,Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]= ...
-        StaggeredGrid(sn,H,B,ctr)
+function [gradm,gradmx,gradmy,gradxy,gradsx,gradsy,gradHx,gradHy, ...
+    Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]=StaggeredGrid(sn,H,B,ctr)
 
 % Kori-ULB
 % Variables on staggered grids
@@ -5414,7 +5447,16 @@ function [gradm,gradmx,gradmy,gradxy,Hm,Hmx,Hmy,Bmx,Bmy,signx,signy]= ...
     Hm=(H+circshift(H,[-1 0])+circshift(H,[0 -1])+circshift(H,[-1 -1]))/4.; 
     gradm=((sn2+sn3-sn-sn1)/(2*ctr.delta)).^2+((sn1+sn3-sn-sn2)/(2*ctr.delta)).^2;
     gradxy=((sn2-sn4)/(2*ctr.delta)).^2+((sn1-sn5)/(2*ctr.delta)).^2;
-   
+    
+    H1=circshift(H,[-1 0]); % sn(i+1,j)
+    H2=circshift(H,[0 -1]); % sn(i,j+1)
+    H4=circshift(H,[0 1]); % sn(i,j-1)
+    H5=circshift(H,[1 0]); % sn(i-1,j)
+    gradsx=(sn2-sn4)/(2*ctr.delta);
+    gradsy=(sn1-sn5)/(2*ctr.delta);
+    gradHx=(H2-H4)/(2*ctr.delta);
+    gradHy=(H1-H5)/(2*ctr.delta);
+    
     gradmx=(sn2-sn)/ctr.delta;
     Hmx=(H+circshift(H,[0 -1]))/2.;
     Bmx=(B+circshift(B,[0 -1]))/2.;
@@ -5631,15 +5673,15 @@ end
 
 
 function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-    ctr,dt,ud,udx,udy,ub,ubx,uby,zeta,gradxy,H, ...
-    dzc,dzm,dzp,G,taudxy,A,DeltaT,MASK,cnt)
+    ctr,dt,gradsx,gradsy,gradHx,gradHy,udx,udy,ub,ubx,uby,zeta,gradxy,H, ...
+    dzc,dzm,dzp,G,taudxy,A,DeltaT,MASK,Bmelt,cnt)
 
 % Kori-ULB
 % 3d englacial temperature calculation in ice sheet and ice shelves
 
     tmp(:,:,1)=Ts+par.T0;
     
-    % horizontal advection (with limits on horizontal velocity)
+    % horizontal velocities on H grid
     uxdt=0.5*(udx+circshift(udx,[0 1]));
     uydt=0.5*(udy+circshift(udy,[1 0]));
     uxbt=0.5*(ubx+circshift(ubx,[0 1]));
@@ -5650,6 +5692,7 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     ut=repmat(uxdt,[1,1,ctr.kmax]).*ushllib+repmat(uxbt,[1,1,ctr.kmax]);
     vt=repmat(uydt,[1,1,ctr.kmax]).*ushllib+repmat(uybt,[1,1,ctr.kmax]);
     
+    % horizontal advection
     dTdxm=(circshift(tmp,[0 -1])-tmp)/ctr.delta;
     dTdxp=(tmp-circshift(tmp,[0 1]))/ctr.delta;
     advecx=zeros(ctr.imax,ctr.jmax,ctr.kmax);
@@ -5661,23 +5704,51 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     advecy(vt>0)=vt(vt>0).*dTdyp(vt>0)*dt;
     advecy(vt<0)=vt(vt<0).*dTdym(vt<0)*dt;
     
-    % adjusted vertical velocity from mass conservation (Hindmarsh, 1999)
-    ws=-max(Mb,1e-5)-(ud.*ushllib(:,:,1)+ub).*sqrt(gradxy);
+    % adjusted vertical velocity (old f.ETISh version)
+%     ws=-max(Mb,1e-5)-(ud.*ushllib(:,:,1)+ub).*sqrt(gradxy);
+%     wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
+%     w=repmat(ws,[1,1,ctr.kmax]).*wshllib;
+    
+    % vertical velocity according to Pattyn (2010) with Lliboutry shape
+    % function
+    % FP: check whether +Bmelt (Huybrechts) or -Bmelt (Pattyn, 2010) - it
+    % should be -Bmelt I think
     wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
-    w=repmat(ws,[1,1,ctr.kmax]).*wshllib;
+    w=repmat(-max(Mb,1e-5),[1,1,ctr.kmax]).*wshllib-Bmelt+ut.* ...
+        (repmat(gradsx,[1,1,ctr.kmax])-zl.*repmat(gradHx,[1,1,ctr.kmax])) ...
+        +vt.*(repmat(gradsy,[1,1,ctr.kmax])-zl.*repmat(gradHy,[1,1,ctr.kmax]));
+    
+%     % integrated verical velocity according to Pattyn (2003)
+%     w=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+%     u=repmat(udx,[1,1,ctr.kmax]).*ushllib+repmat(ubx,[1,1,ctr.kmax]);
+%     v=repmat(udy,[1,1,ctr.kmax]).*ushllib+repmat(uby,[1,1,ctr.kmax]);
+%     dudx=(u-circshift(u,[0 1 0]))/ctr.delta;
+%     dudx(u<0)=(circshift(u(u<0),[0 -1 0])-u(u<0))/ctr.delta;
+%     dvdy=(v-circshift(v,[0 1 0]))/ctr.delta;
+%     dvdy(v<0)=(circshift(v(v<0),[0 -1 0])-v(v<0))/ctr.delta;
+%     w(:,:,ctr.kmax)=u(:,:,ctr.kmax).*(gradsx-gradHx)+v(:,:,ctr.kmax).* ...
+%         (gradsy-gradHy)-Bmelt;
+%     for k=ctr.kmax-1:-1:1
+%         u1=0.5*H.*(dudx(:,:,k)+dudx(:,:,k+1));
+%         v1=0.5*H.*(dvdy(:,:,k)+dvdy(:,:,k+1));
+%         u2=(u(:,:,k+1)-u(:,:,k)).*(gradsx-0.5*(zeta(k)+zeta(k+1))*gradHx);
+%         v2=(v(:,:,k+1)-v(:,:,k)).*(gradsy-0.5*(zeta(k)+zeta(k+1))*gradHy);
+%         w(:,:,k)=(u1+u2+v1+v2)*(zeta(k)-zeta(k+1))+w(:,:,k+1);
+%     end
     
     % Internal heating
+    repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
     dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/(par.n+2),[1,1,ctr.kmax]).* ...
-        repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]).^pl;
-    fric=par.rho*par.g*par.kdif*dt*repmat(reshape(zeta,1,1,ctr.kmax), ...
-        [ctr.imax,ctr.jmax,1]).*dudz.*repmat(sqrt(gradxy),[1,1,ctr.kmax])/par.K;
+        repz.^pl;
+    fric=par.rho*par.g*par.kdif*dt*repz.*dudz.*repmat(sqrt(gradxy), ...
+        [1,1,ctr.kmax])/par.K;
     repmask=repmat(MASK,[1,1,ctr.kmax]);
     fric(repmask==0)=0; % no frictional heat in ice shelves
     extraterm=max(min(fric-advecx-advecy,5),-5); %10
 
     % Temperature solution
     repH=repmat(H+1e-8,[1,1,ctr.kmax]);
-    Tp=par.pmp*repH.*repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
+    Tp=par.pmp*repH.*repz;
     atp=(2*par.kdif*par.secperyear./(repH.*dzm)-w)*dt./(repH.*dzc);
     btp=1+2*par.kdif*par.secperyear*dt./((repH.^2).*dzp.*dzm);
     ctp=(2*par.kdif*par.secperyear./(repH.*dzp)+w)*dt./(repH.*dzc);
@@ -5709,15 +5780,32 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     ctr.runmode(DeltaT(cnt)==c3)=5;
     
     % Correction for unstable temperature profiles
-    [ipos,jpos]=find(abs(tmp(:,:,1)-tmp(:,:,2))>4);
+    % find an anomaly where temperature decreases with depth
+    [ipos,jpos]=find((tmp(:,:,ctr.kmax-1)-tmp(:,:,ctr.kmax))>3 | ...
+        (tmp(:,:,ctr.kmax-2)-tmp(:,:,ctr.kmax-1))>3 | ...
+        (tmp(:,:,ctr.kmax-3)-tmp(:,:,ctr.kmax-2))>3);
+    nMASK=zeros(size(MASK));
+    nMASK(sub2ind(size(nMASK),ipos,jpos))=1;
+    % use analytical solution at the domain boundary when using basins
+    if ctr.basin==1
+        nMASK(1,:)=1;
+        nMASK(ctr.imax,:)=1;
+        nMASK(:,1)=1;
+        nMASK(:,ctr.jmax)=1;
+    end
+    % apply linear temperature profile when MASK=0
+    nMASK(nMASK==1 & MASK==0)=2;
     Tgrad=-G/par.K;
     l=sqrt(2*par.kdif*(H+1e-8)./max(Mb,1e-8)*par.secperyear);
-    for i=1:length(ipos)
-        tmp(ipos(i),jpos(i),:)=flip(Ts(ipos(i),jpos(i))+sqrt(pi)* ...
-            0.5*l(ipos(i),jpos(i))*Tgrad(ipos(i),jpos(i))*(erf(zeta* ...
-            H(ipos(i),jpos(i))/l(ipos(i),jpos(i)))- ...
-            erf(H(ipos(i),jpos(i))/l(ipos(i),jpos(i)))))+par.T0;
-    end
+    nMASKz=repmat(nMASK,[1,1,ctr.kmax]);
+    repl=repmat(l,[1,1,ctr.kmax]);
+    repTs=repmat(Ts,[1,1,ctr.kmax]);
+    repTgrad=repmat(Tgrad,[1,1,ctr.kmax]);
+    tmpb=repTs+sqrt(pi)*0.5*repl.*repTgrad.* ...
+        (erf((1-repz).*repH./repl)-erf(repH./repl))+par.T0;
+    tmp(nMASKz==1)=tmpb(nMASKz==1);
+    Tshelf=repTs+par.T0-(repTs+par.T0-TBshelf).*repz;
+    tmp(nMASKz==2)=Tshelf(nMASKz==2); 
 
     % Correction for pmp
     tmp(tmp>par.T0-Tp)=par.T0-Tp(tmp>par.T0-Tp);
@@ -5785,6 +5873,304 @@ function [flux]=TotalFlux(H,ux,uy,delta)
     uy1=circshift(uy,[1 0]); % uy(i-1,j)
     flux=H.*sqrt((0.5*(ux+ux1)).^2+(0.5*(uy+uy1)).^2)*delta;
     
+end
+
+
+function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
+    u,v,ctr,cnt,bMASK,VM,par)
+
+% Kori-ULB
+% Sparse solver of damage transport (based on ice thickness solver)
+
+    epsilon=1e-10; % artificial diffusion
+    MASK(MASK==6)=0;
+
+    um1=circshift(u,[0 1]); % u(i,j-1)
+    vm1=circshift(v,[1 0]); % v(i-1,j)
+    if ctr.upstream==1
+        up1=circshift(u,[0 -1]); % u(i,j+1)
+        vp1=circshift(v,[-1 0]); % v(i+1,j)
+        um2=circshift(u,[0 2]); % u(i,j-2)
+        vm2=circshift(v,[2 0]); % v(i-2,j)
+    end
+
+    if ctr.upstream==1
+        % conditions for diffusion scheme (init)
+        V0=zeros(ctr.imax,ctr.jmax)+8*epsilon*dtdx; % i,j
+        V1=zeros(ctr.imax,ctr.jmax)-2*epsilon*dtdx; % i,j+1
+        V2=V1; % i,j-1
+        V3=V1; % i+1,j
+        V4=V1; % i-1,j
+        V5=zeros(ctr.imax,ctr.jmax); % i,j-2
+        V6=zeros(ctr.imax,ctr.jmax); % i-2,j
+        V7=zeros(ctr.imax,ctr.jmax); % i,j+2
+        V8=zeros(ctr.imax,ctr.jmax); % i+2,j
+
+        % Velocity sign masks
+        MU=zeros(ctr.imax,ctr.jmax);
+        MU(u>=0 & um1>=0 & um2>=0)=1;
+        MU(u<=0 & um1<=0 & up1<=0)=2;
+        MV=zeros(ctr.imax,ctr.jmax);
+        MV(v>=0 & vm1>=0 & vm2>=0)=1;
+        MV(v<=0 & vm1<=0 & vp1<=0)=2;
+
+        if ctr.basin==1
+            MU(bMASK==1)=0;
+            MV(bMASK==1)=0;
+        end
+
+        V0a=zeros(ctr.imax,ctr.jmax);
+        V1a=zeros(ctr.imax,ctr.jmax);
+        V2a=zeros(ctr.imax,ctr.jmax);
+        V3a=zeros(ctr.imax,ctr.jmax);
+        V4a=zeros(ctr.imax,ctr.jmax);
+
+        % conditions for MU=0 (central difference)
+        V0a(MU==0)=u(MU==0)-um1(MU==0); % i,j
+        V1a(MU==0)=u(MU==0); % i,j+1
+        V2a(MU==0)=-um1(MU==0); % i,j-1
+
+        % conditions for MU=1 (grad(u)>0)
+        V0a(MU==1)=2*u(MU==1)+um1(MU==1); % i,j
+        V2a(MU==1)=-3*um1(MU==1)-um2(MU==1); % i,j-1
+        V5(MU==1)=um2(MU==1); % i,j-2
+
+        % conditions for MU=2 and (grad(u)<0)
+        V0a(MU==2)=-u(MU==2)-2*um1(MU==2); % i,j
+        V1a(MU==2)=3*u(MU==2)+up1(MU==2); % i,j+1
+        V7(MU==2)=(-up1(MU==2)); % i,j+2
+
+        % conditions for MV=0 (central difference)
+        V0a(MV==0)=V0a(MV==0)+v(MV==0)-vm1(MV==0); % i,j
+        V3a(MV==0)=v(MV==0); % i+1,j
+        V4a(MV==0)=-vm1(MV==0); % i-1,j
+
+        % conditions for MV=1 (grad(v)>0)
+        V0a(MV==1)=V0a(MV==1)+2*v(MV==1)+vm1(MV==1); % i,j
+        V4a(MV==1)=-3*vm1(MV==1)-vm2(MV==1); % i-1,j
+        V6(MV==1)=vm2(MV==1); % i-2,j
+
+        % conditions for MV=2 (grad(v)<0)
+        V0a(MV==2)=V0a(MV==2)-v(MV==2)-2*vm1(MV==2); % i,j
+        V3a(MV==2)=3*v(MV==2)+vp1(MV==2); % i+1,j
+        V8(MV==2)=-vp1(MV==2); % i+2,j
+
+        % Filling V-matrix
+        V0=V0+V0a*dtdx2;%.*(1.-alfa);
+        V1=V1+V1a*dtdx2;%.*(1.-alfa);
+        V2=V2+V2a*dtdx2;%.*(1.-alfa);
+        V3=V3+V3a*dtdx2;%.*(1.-alfa);
+        V4=V4+V4a*dtdx2;%.*(1.-alfa);
+        V5=V5*dtdx2;%.*(1.-alfa);
+        V6=V6*dtdx2;%.*(1.-alfa);
+        V7=V7*dtdx2;%.*(1.-alfa);
+        V8=V8*dtdx2;%.*(1.-alfa);
+    else
+        V0=8*epsilon*dtdx+dtdx2*(u-um1+v-vm1); % i,j
+        V1=-2*epsilon*dtdx+dtdx2*u; % i,j+1
+        V2=-2*epsilon*dtdx-dtdx2*um1; % i,j-1
+        V3=-2*epsilon*dtdx+dtdx2*v; % i+1,j
+        V4=-2*epsilon*dtdx-dtdx2*vm1; % i-1,j
+    end
+
+    R0=dtr-dtr*(1-par.omega).*V0-circshift(dtr,[0 -1])*(1-par.omega) ...
+        .*V1-circshift(dtr,[0 1])*(1-par.omega).*V2-circshift(dtr,[-1 0])* ...
+        (1-par.omega).*V3-circshift(dtr,[1 0])*(1-par.omega).*V4 ...
+        +(max(Mb,0)+max(Melt,0))*ctr.dt./max(H,1e-5);
+    if ctr.upstream==1
+        R0=R0-circshift(dtr,[0 2])*(1-par.omega).*V5-circshift(dtr,[2 0])* ...
+            (1-par.omega).*V6-circshift(dtr,[0 -2])*(1-par.omega).*V7- ...
+            circshift(dtr,[-2 0])*(1-par.omega).*V8;
+    end
+
+    V0(MASK==0)=0; % note that for shelf=1, MASK=glMASK in the call
+    V1(MASK==0)=0;
+    V2(MASK==0)=0;
+    V3(MASK==0)=0;
+    V4(MASK==0)=0;
+    if ctr.upstream==1
+        V5(MASK==0)=0;
+        V6(MASK==0)=0;
+        V7(MASK==0)=0;
+        V8(MASK==0)=0;
+    end
+    R0(MASK==0)=dtr(MASK==0);
+
+    % boundaries
+    V9=zeros(ctr.imax,ctr.jmax); % ice divide or ocean
+    V10=zeros(ctr.imax,ctr.jmax); % i=1 periodic boundary or ocean
+    V11=zeros(ctr.imax,ctr.jmax); % i=imax periodic boundary or ocean
+    V12=zeros(ctr.imax,ctr.jmax); % j=jmax ocean contact
+
+    wholemask=ctr.imax*ctr.jmax-sum(MASK(:));
+    if wholemask~=0 % only when domain is not MASK=1 everywhere
+        MASKb=zeros(ctr.imax,ctr.jmax);
+        MASKb(:,1)=1; % symmetric divide or ocean
+        V0(MASKb==1)=0;
+        V9(MASKb==1)=-1;
+        R0(MASKb==1)=0;
+
+        MASKb=zeros(ctr.imax,ctr.jmax);
+        MASKb(1,2:ctr.jmax-1)=1; % periodic BC at i=1 or ocean
+        V0(MASKb==1)=0;
+        V10(MASKb==1)=-1;
+        R0(MASKb==1)=0;
+
+        MASKb=zeros(ctr.imax,ctr.jmax);
+        MASKb(ctr.imax,2:ctr.jmax-1)=1; % periodic BC at i=imax or ocean
+        V0(MASKb==1)=0;
+        V11(MASKb==1)=-1;
+        R0(MASKb==1)=0;
+
+        MASKb=zeros(ctr.imax,ctr.jmax);
+        MASKb(1:ctr.imax,ctr.jmax)=1; % ocean
+        V0(MASKb==1)=0;
+        V12(MASKb==1)=-1;
+        R0(MASKb==1)=0;
+    end
+
+    MASKb=zeros(ctr.imax,ctr.jmax);
+    MASKb(1,:)=1;
+    MASKb(ctr.imax,:)=1;
+    MASKb(:,1)=1;
+    MASKb(:,ctr.jmax)=1;
+    V1(MASKb==1)=0;
+    V2(MASKb==1)=0;
+    V3(MASKb==1)=0;
+    V4(MASKb==1)=0;
+    if ctr.upstream==1
+        V5(MASKb==1)=0;
+        V6(MASKb==1)=0;
+        V7(MASKb==1)=0;
+        V8(MASKb==1)=0;
+    end
+    if wholemask==0
+        V0(MASKb==1)=0;
+        R0(MASKb==1)=0;
+    end
+
+    if ctr.upstream==1
+        V=[reshape(V0(VM==1)*par.omega+1,nodes,1)
+            V1(V1~=0)*par.omega
+            V2(V2~=0)*par.omega
+            V3(V3~=0)*par.omega
+            V4(V4~=0)*par.omega
+            V5(V5~=0)*par.omega
+            V6(V6~=0)*par.omega
+            V7(V7~=0)*par.omega
+            V8(V8~=0)*par.omega
+            V9(V9~=0)
+            V10(V10~=0)
+            V11(V11~=0)
+            V12(V12~=0)];
+
+        row=[reshape(node(VM==1),nodes,1)
+            node(V1~=0)
+            node(V2~=0)
+            node(V3~=0)
+            node(V4~=0)
+            node(V5~=0)
+            node(V6~=0)
+            node(V7~=0)
+            node(V8~=0)
+            node(V9~=0)
+            node(V10~=0)
+            node(V11~=0)
+            node(V12~=0)];
+    else
+        V=[reshape(V0(VM==1)*par.omega+1,nodes,1)
+            V1(V1~=0)*par.omega
+            V2(V2~=0)*par.omega
+            V3(V3~=0)*par.omega
+            V4(V4~=0)*par.omega
+            V9(V9~=0)
+            V10(V10~=0)
+            V11(V11~=0)
+            V12(V12~=0)];
+
+        row=[reshape(node(VM==1),nodes,1)
+            node(V1~=0)
+            node(V2~=0)
+            node(V3~=0)
+            node(V4~=0)
+            node(V9~=0)
+            node(V10~=0)
+            node(V11~=0)
+            node(V12~=0)];
+    end
+
+    nodeV1=circshift(node,[0 -1]); % i,j+1
+    nodeV2=circshift(node,[0 1]); % i,j-1
+    nodeV3=circshift(node,[-1 0]); % i+1,j
+    nodeV4=circshift(node,[1 0]); % i-1,j
+    if ctr.upstream==1
+        nodeV5=circshift(node,[0 2]); % i,j-2
+        nodeV6=circshift(node,[2 0]); % i-2,j
+        nodeV7=circshift(node,[0 -2]); % i,j+2
+        nodeV8=circshift(node,[-2 0]); % i+2,j
+    end
+    if ctr.mismip>=1
+        nodeV9=circshift(node,[0 -2]); % i,j+2 - divide
+        nodeV10=circshift(node,[-2 0]); % 3,j - symmetry at i=1
+        if ctr.mismip==1
+            nodeV11=circshift(node,[2 0]); % n-2,j - PBC at i=imax
+        else
+            nodeV11=circshift(node,[1 0]);
+        end
+        nodeV12=circshift(node,[0 1]); % i,jmax-1 - ocean
+    else
+        nodeV9=circshift(node,[0 -1]); % i,2 - ocean
+        nodeV10=circshift(node,[-1 0]); % 2,j - ocean
+        nodeV11=circshift(node,[1 0]); % imax-1,j - ocean
+        nodeV12=circshift(node,[0 1]); % i,jmax-1 - ocean
+    end
+
+    if ctr.upstream==1
+        col=[reshape(node(VM==1),nodes,1)
+            nodeV1(V1~=0)
+            nodeV2(V2~=0)
+            nodeV3(V3~=0)
+            nodeV4(V4~=0)
+            nodeV5(V5~=0)
+            nodeV6(V6~=0)
+            nodeV7(V7~=0)
+            nodeV8(V8~=0)
+            nodeV9(V9~=0)
+            nodeV10(V10~=0)
+            nodeV11(V11~=0)
+            nodeV12(V12~=0)];
+    else
+        col=[reshape(node(VM==1),nodes,1)
+            nodeV1(V1~=0)
+            nodeV2(V2~=0)
+            nodeV3(V3~=0)
+            nodeV4(V4~=0)
+            nodeV9(V9~=0)
+            nodeV10(V10~=0)
+            nodeV11(V11~=0)
+            nodeV12(V12~=0)];
+    end
+
+    R=reshape(R0(VM==1),nodes,1);
+
+    % construct sparse matrix
+    A=sparse(row,col,V);
+    % Cholesky factor and solve
+    if ctr.inverse==1 || ctr.ItSolv==0
+        s=A\R;
+    else
+        D=diag(diag(A));
+        C1=tril(A);
+        C2=D\triu(A);
+        [s,flag]=pcg(A,R,par.Htol,par.Hiter,C1,C2);
+        if flag>0 || cnt==1
+            s=A\R;
+        end
+    end
+
+    dtr(node>0)=s(node(node>0));
+    dtr=max(0,min(H-eps,dtr)); % FP: put limit on maximum dtr as 1/20 of ice thickness
+
 end
 
 
