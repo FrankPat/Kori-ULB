@@ -1,4 +1,4 @@
-function [invmax2D,ncor]=init_optimization(ctr,par,ncor,MASK,B,stdB)
+function [invmax2D,ncor]=InitOptimization(ctr,par,ncor,MASK,B,stdB)
 
 % Kori-ULB
 % Initialization of control matrices for the optimization (initialization)
