@@ -1,4 +1,4 @@
-# Kori-dev
+# Kori-ULB
 **Kori-ULB ice flow model (development)**
 
 ![KoriTransparent](https://github.com/FrankPat/Kori-dev/assets/62480664/039cc0b4-914a-4698-8fe2-62663d3f0a0b)
