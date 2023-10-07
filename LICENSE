@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022 Frank Pattyn
+Copyright (c) 2017-2023 Frank Pattyn
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@ SOFTWARE.
 
 Other software packages used in Kori-ULB:
 
-- crameri: Fabio Crameri's scientific colormaps, version 4.0.
+- crameri: Fabio Crameri's scientific colormaps, version 8.0.
            http://www.fabiocrameri.ch/colourmaps.php
 - convnfft, conv2fft:  Bruno Luong <brunoluong@yahoo.com>
 - imagescn: C. Greene (UTIG, Texas) http://www.chadagreene.com
