@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                 Kori-ULB: The ULB ice flow model                      %
 %                                                                       %
-%                      Version 0.9 January 2023                         %
+%                       Version 0.91 July 2023                          %
 %                                                                       %
 %                           Frank Pattyn                                %
 %                    Laboratoire de Glaciologie                         %
@@ -20,7 +20,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2023 Frank Pattyn                                       %
+% Copyright (c) 2017-2023 Frank Pattyn                                  %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -43,8 +43,9 @@
 %                                                                       %
 % Other software packages used in Kori-ULB:                             %
 %                                                                       %
-%   - crameri: Fabio Crameri's scientific colormaps, version 4.0.       %
+%   - crameri: Fabio Crameri's scientific colormaps, version 8.0.       %
 %              http://www.fabiocrameri.ch/colourmaps.php                %
+%              C. Greene (UTIG, Texas) http://www.chadagreene.com       %
 %   - convnfft, conv2fft:  Bruno Luong <brunoluong@yahoo.com>           %
 %   - imagescn: C. Greene (UTIG, Texas) http://www.chadagreene.com      %
 %                                                                       %
@@ -89,8 +90,6 @@
 % Model input
 %-----------------------------------------------------------------
 %
-% Main Matlab files: KoriModel.m, KoriInputParams.m
-%
 % Model input: input filename (infile); all other input is optional and
 %   may contain ice geometry (H, B, MASK) or intial climate (Ts, Mb).
 %
@@ -99,21 +98,28 @@
 %                   VERSION history                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% v0.9 (12/2022)
+% v0.91 (07/2023)
 %
 %------------------------------------------------------------------------
 
 
-function KoriModel(infile,outfile,ctr,fc)
+function varargout=KoriModel(infile,outfile,ctr,fc)
 
 %-------------------
 % model version
 %-------------------
 
 ctr.model='Kori-ULB';
-ctr.version='v0.9';
+ctr.version='v0.91';
 fprintf('---%s %s---\n  [%s Frank.Pattyn@ulb.be]\n',ctr.model, ...
     ctr.version,char(169));
+
+%------------------------------------------
+% Run standard model test without arguments
+%------------------------------------------
+if nargin==0
+    [ctr,outfile]=RunTest(ctr);
+end
 
 %---------------------------------------------------------------
 % Determine whether and what forcing is used
@@ -172,7 +178,8 @@ slicecount=0;
 %--------------------------------------------------------------------
 
 [Asor,stdB,v,vx,vy,tmp,Db,To,So,Tb,uxssa,uyssa,deltaZ,arcocn,arcocn0, ...
-    Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit]=deal(false);
+    Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit,ZB, ...
+    flagHu,frb,kei,Ll]=deal(false);
 
 %---------------------
 % Initialization
@@ -181,9 +188,9 @@ slicecount=0;
 [ctr.snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn, ...
     Mb_update,Li,Lj,dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo, ...
     MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
-    dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt, ...
+    dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
     CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
-    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage]= ...
+    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage,shelftune]= ...
     InitMatrices(ctr,par,default,fc);
 
 %----------------------------------------------------------------------
@@ -195,11 +202,27 @@ slicecount=0;
 %   Input initialized by zeros(B,H,Mb,Ts,stdB) and ones(MASK)
 %----------------------------------------------------------------------
 
-if exist([infile,'.mat'],'file')
+if nargin>0 && exist([infile,'.mat'],'file')
     load(infile);
 end
 [As,Mb0,Ts0,MASK0,MASK,bMASK,H,B,H0,B0]= ...
     InitInputData(ctr,par,As,Mb,Ts,MASK,MASKo,H,B);
+
+%--------------------------------------------------
+% Define basin-related variables (if basins exist)
+%--------------------------------------------------
+
+if islogical(ZB)==0
+    mb_basin=zeros(ctr.nsteps,21,max(ZB(:)));
+    SLC_basin=zeros(ctr.nsteps,max(ZB(:)));
+    VAF_basin=zeros(ctr.nsteps,max(ZB(:)));
+    IVg_basin=zeros(ctr.nsteps,max(ZB(:)));
+    Ag_basin=zeros(ctr.nsteps,max(ZB(:)));
+    if ctr.shelf==1
+        IVf_basin=zeros(ctr.nsteps,max(ZB(:)));
+        Af_basin=zeros(ctr.nsteps,max(ZB(:)));
+    end
+end
 
 %------------------------------------------
 % Test on existance of certain parameters
@@ -244,7 +267,7 @@ So0=So;
 
 cntT=0;
 if ctr.Tcalc>=1
-    [tmp,Tb,zeta,dzc,dzp,dzm]=InitTempParams(ctr,par,tmp,Ts);
+    [tmp,Tb,zeta,dzc,dzp,dzm]=InitTempParams(ctr,par,tmp,Ts,H);
 end
 
 %--------------------------------------
@@ -281,7 +304,6 @@ if exist('LSF','var')==0
     LSF=ones(ctr.imax,ctr.jmax);
     LSF(MASK==0 & H<=par.SeaIceThickness)=-1;
 end
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -328,7 +350,7 @@ for cnt=cnt0:ctr.nsteps
     end    
 
 %------------------------------------------------------
-% Copying H and B on old values
+% Copying Hn and Bn on H and B values
 %------------------------------------------------------
 
     if cnt>1
@@ -364,14 +386,14 @@ for cnt=cnt0:ctr.nsteps
         snp_atm,Mb_update,Tsf,Mbf,Prf,Evpf,runofff);
 
     % Correction/calculation of Ts 
-    [Ts,Tsf]=TsFunc(ctr,par,Tsf,sninit,sn,fc.DeltaSL(cnt),fc.DeltaT(cnt));
+    [Ts]=TsFunc(ctr,par,Tsf,sninit,sn,fc.DeltaSL(cnt),fc.DeltaT(cnt));
     % Correction/calculation of SMB components
     if Mb_update==0
-        [Pr,Evp,runoff]=MbFunc(ctr,Prf,Evpf,runoff,runofff, ...
-            Tsf,Ts,sn,X,Y,Lj,Li,fc.DeltaT(cnt));
+        [Pr,Evp,runoff]=MbFunc(ctr,par,Prf,Evpf,runoff,runofff, ...
+            Tsf,sn,sninit,X,Y,Lj,Li,fc.DeltaT(cnt),fc.DeltaSL(cnt));
     else
-        [Mb,~,~]=MbFunc(ctr,Mbf,Evpf,runoff,runofff, ...
-            Tsf,Ts,sn,X,Y,Lj,Li,fc.DeltaT(cnt));
+        [Mb,~,~]=MbFunc(ctr,par,Mbf,Evpf,runoff,runofff, ...
+            Tsf,sn,sninit,X,Y,Lj,Li,fc.DeltaT(cnt),fc.DeltaSL(cnt));
     end
     if ctr.PDDcalc==1 % PDD MODEL
         if ctr.monthly==0
@@ -381,7 +403,7 @@ for cnt=cnt0:ctr.nsteps
             % Evaluates mean yearly runoff at the beginning of the year
             if rem(time(cnt),1)==0
                 [Ts_yc,Pr_yc]=ExtractAnnualCycle(fc,ctr,par,Pr, ...
-                    Ts,sninit,sn,MASK,lat,fc.DeltaT(cnt),snp_atm);
+                    Ts,sninit,sn,MASK,lat,fc.DeltaSL(cnt),fc.DeltaT(cnt),snp_atm);
                 [runoff,acc,rain,Smelt]=PDDmonthly(Ts_yc,Pr_yc,par,ctr);
             end
             Pr=mean(Pr_yc,3);
@@ -405,7 +427,7 @@ for cnt=cnt0:ctr.nsteps
     [bMASKm,bMASKx,bMASKy]=StaggeredBMASK(ctr,bMASK);
 
     % Searching GL on H-grid (define MASK & glMASK)
-    [glMASK,MASK]=GroundingLineMask(MASK,bMASK,H,ctr);
+    [glMASK,MASK]=GroundingLineMask(MASK,bMASK,H,ctr,par);
     if ctr.schoof>=1 || ctr.shelf==1
         % sea ice thickness to control 'ocean' viscosity (0.1 m)
         H(MASK==0 & H<par.SeaIceThickness)=par.SeaIceThickness; 
@@ -468,7 +490,10 @@ for cnt=cnt0:ctr.nsteps
         end
         Tb=tmp(:,:,ctr.kmax)-par.T0;
     else
-        Bmelt=zeros(ctr.imax,ctr.jmax)+5e-3; % mean value based on Pattyn (2010)
+        if ctr.subwaterflow>0
+            Bmelt=zeros(ctr.imax,ctr.jmax)+1e-8;
+            Bmelt(MASK--0)=0;
+        end
     end
 
 %-------------------------------------
@@ -507,11 +532,15 @@ for cnt=cnt0:ctr.nsteps
                 uyssa=zeros(ctr.imax,ctr.jmax);
             end
         end
-        [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy,damage]= ...
+        [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
+            damage,NumStabVel]= ...
             SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
             uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
             nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
-            Mb,Melt,dtdx,dtdx2,VM,damage);
+            Mb,Melt,dtdx,dtdx2,VM,damage,shelftune);
+        if ctr.NumCheck==1
+            NumStab(cnt,1:5)=NumStabVel;
+        end
     else
         ux=uxsia;
         uy=uysia;
@@ -602,9 +631,13 @@ for cnt=cnt0:ctr.nsteps
         if ctr.basin==1
             Massb(bMASK==1)=0; % only for ice thickness evolution
         end
-        Hn=SparseSolverIceThickness(node,nodes,Massb,H,B,SLR,glMASK,dtdx,dtdx2, ...
+        [Hn,flagH,relresH,iterH]=SparseSolverIceThickness(node,nodes, ...
+            Massb,H,B,SLR,glMASK,dtdx,dtdx2, ...
             d,uxsch,uysch,ctr,cnt,bMASK,VM,par);
-        if ctr.calving==5
+        if ctr.NumCheck==1
+            NumStab(cnt,6:8)=[relresH,iterH,flagH];
+        end
+        if ctr.calving>=5
             % remove icebergs
             Hn(LSF<0)=par.SeaIceThickness;
         end
@@ -616,20 +649,10 @@ for cnt=cnt0:ctr.nsteps
 % Bedrock adjustment
 %----------------------
 
-    if cntT==1
-        if ctr.BedAdj==1
-            bload=BedrockAdjustment(ctr,par,load0,MASK,Hn,B,SLR,Db,VM, ...
-                node,nodes,frb,kei,Ll);
-        end
-        if ctr.BedAdj==2
-            bload=zeros(ctr.imax,ctr.jmax);
-            bload(MASK==1)=par.rho*Hn(MASK==1)/par.rhom-load0(MASK==1);
-            bload(MASK==0)=(-par.rhow)*(B(MASK==0)-SLR(MASK==0))/ ...
-                par.rhom-load0(MASK==0);
-        end
-        if ctr.BedAdj>0
-            Bn=(B-B0+bload)*ctr.dt*par.intT./(-Btau)+B;
-        end
+    if cntT==1 && ctr.BedAdj>0
+        bload=BedrockAdjustment(ctr,par,load0,MASK,Hn,B,SLR,Db,VM, ...
+            node,nodes,frb,kei,Ll);
+        Bn=(B-B0+bload)*ctr.dt*par.intT./(-Btau)+B;
     end
 
 %-----------------------------------------------------------------
@@ -664,6 +687,9 @@ for cnt=cnt0:ctr.nsteps
 %------------------------------------------------------
 
     [VAF(cnt),POV(cnt),SLC(cnt),VA0(cnt)]=SeaLevel(ctr,par,SLR,B,H,H0,VAF0,POV0);
+    if islogical(ZB)==0
+        [VAF_basin(cnt,:),SLC_basin(cnt,:)]=SeaLevelBasin(ctr,par,SLR,B,H,H0,VAF0,POV0,ZB);
+    end
     if ctr.GeoidCalc==1 && cntT==1
         [SLR,dSLR]=CalculateGeoid(par,ctr,fc.DeltaSL(cnt),SLC(cnt),SLR,SLR0, ...
             Bn,Hn,Pg0,frg,geoide);
@@ -676,17 +702,51 @@ for cnt=cnt0:ctr.nsteps
 % Time-dependent mass balance components
 %------------------------------------------------------
     
-    mbcomp(cnt,:)=MBcomponents(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
-        H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,mbcomp(cnt,:),B,Bn,SLR);
-    flux=TotalFlux(H,ux,uy,ctr.delta);
-    IVg(cnt)=sum(H(MASK==1))*ctr.delta^2;
-    Ag(cnt)=sum(sum(MASK==1))*ctr.delta^2;
-    if ctr.glMASKexist==1
-        Af(cnt)=(sum(sum(MASK==0))-sum(sum(glMASK==6)))*ctr.delta^2;
-        IVf(cnt)=(sum(H(MASK==0))-sum(H(glMASK==6)))*ctr.delta^2;
-        glflux(cnt)=sum(flux(glMASK==2));
+    if islogical(ZB)==0
+        mb_basin(cnt,:,:)=BasinFlux(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
+            H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,squeeze(mb_basin(cnt,:,:)),B,Bn,SLR,ZB);
+        mbcomp(cnt,:)=sum(squeeze(mb_basin(cnt,:,:)),2);
+    else
+        mbcomp(cnt,:)=MBcomponents(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
+            H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,mbcomp(cnt,:),B,Bn,SLR);
     end
-    
+    IVg(cnt)=sum(H(MASK==1))*ctr.delta^2;
+    Ag(cnt)=sum(MASK(H>0)==1)*ctr.delta^2;
+    if ctr.glMASKexist==1
+        Af(cnt)=sum(MASK(H>par.SeaIceThickness)==0)*ctr.delta^2;
+        IVf(cnt)=sum(H(MASK==0 & H>par.SeaIceThickness))*ctr.delta^2;
+        fluxmx=Hmx.*ux*ctr.delta;
+        fluxmy=Hmy.*uy*ctr.delta;
+        glflux(cnt)=sum(fluxmx(glMASK==2 & circshift(glMASK,[0 -1])>2))+ ...
+            sum(fluxmy(glMASK==2 & circshift(glMASK,[-1 0])>2))+ ...
+            sum(-fluxmx(glMASK>2 & circshift(glMASK,[0 -1])==2))+ ...
+            sum(-fluxmy(glMASK>2 & circshift(glMASK,[-1 0])==2));
+    end
+    if islogical(ZB)==0
+        for i=1:max(ZB(:))
+            IVg_basin(cnt,i)=sum(H(MASK==1 & H>0 & ZB==i))*ctr.delta^2;
+            Ag_basin(cnt,i)=sum(sum(MASK==1 & H>0 & ZB==i))*ctr.delta^2;
+            if ctr.shelf==1
+                IVf_basin(cnt,i)=(sum(sum(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
+                Af_basin(cnt,i)=(sum(H(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
+            end
+        end
+    end
+
+%------------------------------------
+% NaN check
+%------------------------------------   
+    flagHu=NaNcheck(flagHu,Hn,ux,uy);
+    if flagHu
+        outputname=[outfile,'_toto'];
+        save(outputname);
+        fprintf('\n Run stopped at t = %12.2f\n\n', time(cnt));
+        if nargout==1
+            varargout{1}=flagHu;
+        end
+        return;
+    end
+
 %------------------------------------
 % Save time-dependent matrices
 %------------------------------------
@@ -710,7 +770,7 @@ for cnt=cnt0:ctr.nsteps
 %------------------------------------
 % Save intermediate output
 %------------------------------------
-    
+
     cntT(cntT>=par.intT)=0;
     oldMASK=MASK;
     if ctr.runmode==1 || ctr.runmode==3 || ctr.runmode==5
@@ -722,7 +782,7 @@ for cnt=cnt0:ctr.nsteps
             end
         end
     end
-    
+        
 %------------------------------------
 % End of time loop
 %------------------------------------
@@ -746,7 +806,7 @@ save(outfile,'H','B','Ho','Bo','MASK','MASKo','As','G', ...
 if ctr.Tcalc>=1
     save(outfile,'tmp','Bmelt','-append');
 end
-if ctr.inverse>0    %VL: add Asor to init outputs
+if ctr.inverse>0
     save(outfile,'Asor','-append');
 end
 if ctr.stdBexist==1
@@ -804,6 +864,9 @@ Mb=Mbend;
 ctr=orderfields(ctr); % put in alphabetical order
 outputname=[outfile,'_toto'];
 save(outputname);
+if nargout==1
+    varargout{1}=flagHu;
+end
 
 %--------------------------
 % Plots

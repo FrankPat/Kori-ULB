@@ -5,7 +5,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2023 Frank Pattyn                                       %
+% Copyright (c) 2017-2023 Frank Pattyn                                  %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -77,20 +77,20 @@ par.ShelfPinning=1; % sub-shelf pinning of ice shelves based on bedrock variabil
 par.g=9.81; % gravitational acceleration
 par.rho=917.; % ice density
 par.rhow=1027.; % sea water density
-par.rhom=3370.; % lithosphere density
+par.rhom=3370.; % mantle density
 par.n=3; % flow law exponent
-par.visciter=50; % max number of iterations over effective viscosity in SSA solution (50)
-par.visctol=5e-1; % limit for iterations over effective viscosity in SSA solution (0.5)
-par.veliter=50;  %VL: max iteration number for iterative SSA velocity solver (50)
-par.veltol=1e-4;  %VL: tolerance for iterative SSA velocity solver (1e-4)
+par.visciter=50; % Maximum number of iterations on the nonlinear part of the SSA equation (50)
+par.visctol=5e-1; % Tolerance for calculation of the nonlinear part of the SSA equation (0.5)
+par.veliter=50;  % Maximum number of iterations for the iterative SSA velocity solver (50)
+par.veltol=1e-4;  % Tolerance for the iterative SSA velocity solver (1e-4)
 if basin==1
     par.veltol=par.veltol/10;
 end
-par.Hiter=20; %VL: max iteration number for iterative thickness solver (20)
-par.Htol=1e-6;  %VL: tolerance for iterative thickness solver (1e-6)
+par.Hiter=20; % max iteration number for iterative thickness solver (20)
+par.Htol=1e-6;  % tolerance for iterative thickness solver (1e-6)
 par.Z=2*(par.g*par.rho)^par.n; % SIA isothermal pre-term
-par.dlim=0.5; % Limit on local crevasses depth (% of H)
-par.damlim=0.9; % limit on total damage (% of H)
+par.dlim=0.3; % Limit on local crevasses depth (% of H)
+par.damlim=0.7; % limit on total damage (% of H)
 
 %-----------------------------------
 % Ice-ocean interactions
@@ -116,7 +116,7 @@ par.rhoref=1033;
 par.lambda1=-5.73e-2;
 par.lambda2=8.32e-2;
 par.lambda3=7.61e-4;
-par.gamma0=1.447733676e4;
+% par.gamma0=1.447733676e4; % seems not used
 par.gamma1=0.545;
 par.gamma2=3.5e-5;
 par.CdGamT=1.1e-3;
