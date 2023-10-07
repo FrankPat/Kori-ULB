@@ -20,6 +20,8 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.shelf(any(ismember(fields(ctr),'shelf'))==0)=0;
     ctr.SSA(any(ismember(fields(ctr),'SSA'))==0)=0;
     ctr.MbType(any(ismember(fields(ctr),'MbType'))==0)=0;
+    ctr.MbConst(any(ismember(fields(ctr),'MbConst'))==0)=0;
+    ctr.TsConst(any(ismember(fields(ctr),'TsConst'))==0)=0;
     ctr.TsType(any(ismember(fields(ctr),'TsType'))==0)=0;
     ctr.Tcalc(any(ismember(fields(ctr),'Tcalc'))==0)=0;
     ctr.Tinit(any(ismember(fields(ctr),'Tinit'))==0)=0;
@@ -33,6 +35,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.HydroFrac(any(ismember(fields(ctr),'HydroFrac'))==0)=0;
     ctr.GeoidCalc(any(ismember(fields(ctr),'GeoidCalc'))==0)=0;
     ctr.starttime(any(ismember(fields(ctr),'starttime'))==0)=0;
+    ctr.NumCheck(any(ismember(fields(ctr),'NumCheck'))==0)=0;
     ctr.mismip(any(ismember(fields(ctr),'mismip'))==0)=0;
     ctr.basin(any(ismember(fields(ctr),'basin'))==0)=0;
     ctr.damage(any(ismember(fields(ctr),'damage'))==0)=0;
@@ -49,20 +52,14 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.radnorm(any(ismember(fields(ctr),'radnorm'))==0)=default.radnorm;
     ctr.snapshot(any(ismember(fields(ctr),'snapshot'))==0)=default.snapshot;
     ctr.BetaIter(any(ismember(fields(ctr),'BetaIter'))==0)=default.BetaIter;
-    if any(ismember(fields(ctr),'shelftune'))==0
-        ctr.shelftune=zeros(ctr.imax,ctr.jmax)+default.shelftune;
-    elseif numel(ctr.shelftune)==1
-        ctr.shelftune=zeros(ctr.imax,ctr.jmax)+ctr.shelftune;
-    end
+    ctr.shelftune(any(ismember(fields(ctr),'shelftune'))==0)=default.shelftune;
     ctr.meltfactor(any(ismember(fields(ctr),'meltfactor'))==0)=default.meltfactor;
     ctr.Ao(any(ismember(fields(ctr),'Ao'))==0)=default.Ao;
     ctr.u0(any(ismember(fields(ctr),'u0'))==0)=default.u0;
     ctr.plotGL(any(ismember(fields(ctr),'plotGL'))==0)=default.plotGL;
     ctr.upstream(any(ismember(fields(ctr),'upstream'))==0)=default.upstream;
     ctr.ItSolv(any(ismember(fields(ctr),'ItSolv'))==0)=default.ItSolv;
-    if any(ismember(fields(ctr),'Asin'))==0
-        ctr.Asin=zeros(ctr.imax,ctr.jmax)+1e-10;
-    end
+    ctr.Asin(any(ismember(fields(ctr),'Asin'))==0)=default.Asin;
     if any(ismember(fields(ctr),'gammaT'))==0
         if ctr.meltfunc==1
             ctr.gammaT=default.gammaTlin;

@@ -30,6 +30,7 @@ function default=InitDefault
     default.meltfactor=0.3;
     default.G0=0.042;
     default.u0=1e12;
+    default.Asin=1e-10;
     
 end
 

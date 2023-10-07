@@ -1,4 +1,4 @@
-function [glMASK,MASK]=GroundingLineMask(MASK,bMASK,H,ctr)
+function [glMASK,MASK]=GroundingLineMask(MASK,bMASK,H,ctr,par)
 
 % Kori-ULB
 % Definition of glMASK when grounding lines appear in the domain
@@ -7,7 +7,7 @@ function [glMASK,MASK]=GroundingLineMask(MASK,bMASK,H,ctr)
 %   glMASK=3: first floating grid point
 %   glMASK=4: ice shelf
 %   glMASK=5: calving front
-%   glMASK=§: open ocean
+%   glMASK=6: open ocean
 
     glMASK=MASK;
     MASK1=circshift(MASK,[0 -1]); % MASK(i,j+1)
@@ -28,22 +28,23 @@ function [glMASK,MASK]=GroundingLineMask(MASK,bMASK,H,ctr)
     if ctr.shelf==1
         glMASK(glMASK==0)=4; % ice shelf (=4)
         if ctr.calving>=1
-            glMASK(glMASK==4 & H<5)=6;  % sea ice/ocean (=6)
+            glMASK(glMASK==4 & H<=par.SeaIceThickness)=6;  % sea ice/ocean (=6)
             MASK1=circshift(glMASK,[0 -1]); % glMASK(i,j+1)
             MASK2=circshift(glMASK,[0 1]); % glMASK(i,j-1)
             MASK3=circshift(glMASK,[-1 0]); % glMASK(i+1,j)
             MASK4=circshift(glMASK,[1 0]); % glMASK(i-1,j)
             glMASK((glMASK==3 | glMASK==4) & (MASK1==6 | MASK2==6 | ...
                 MASK3==6 | MASK4==6))=5; % Calving front (=5)
+            glMASK(H<=par.SeaIceThickness & MASK==0)=6;
         end
     end
     if ctr.mismip>=1
         glMASK(:,1)=glMASK(:,3);
         glMASK(1,:)=glMASK(3,:);
+        glMASK(:,ctr.jmax)=glMASK(:,ctr.jmax-1);
         if ctr.mismip==1
             glMASK(ctr.imax,:)=glMASK(ctr.imax-2,:);
         else
-            glMASK(:,ctr.jmax)=glMASK(:,ctr.jmax-1);
             glMASK(ctr.imax,:)=glMASK(ctr.imax-1,:);
         end
     end

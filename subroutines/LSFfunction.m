@@ -9,11 +9,6 @@ function LSF=LSFfunction(LSF,ctr,u,v,node,nodes,VM,MASK)
     
     dtdx2=epsilon*ctr.dt/(ctr.delta*ctr.delta);
     dtdx=ctr.dt/ctr.delta;
-    
-    % velocity on LSF grid;
-    cx=0.5*(u+circshift(u,[0 1]));
-    cy=0.5*(v+circshift(v,[1 0]));
-
     MASKb=zeros(ctr.imax,ctr.jmax);
     MASKb(2:ctr.imax-1,2:ctr.jmax-1)=1;
     
@@ -26,9 +21,9 @@ function LSF=LSFfunction(LSF,ctr,u,v,node,nodes,VM,MASK)
 
     % Velocity sign masks
     MU=ones(ctr.imax,ctr.jmax);
-    MU(cx<=0)=2;
+    MU(u<=0)=2;
     MV=ones(ctr.imax,ctr.jmax);
-    MV(cy<=0)=2;
+    MV(v<=0)=2;
     MU(MASKb==0)=0;
     MV(MASKb==0)=0;
 
@@ -39,20 +34,20 @@ function LSF=LSFfunction(LSF,ctr,u,v,node,nodes,VM,MASK)
     V4a=zeros(ctr.imax,ctr.jmax);
 
     % conditions for MU=1 (grad(u)>0)
-    V0a(MU==1)=cx(MU==1); % i,j
-    V2a(MU==1)=-cx(MU==1); % i,j-1
+    V0a(MU==1)=u(MU==1); % i,j
+    V2a(MU==1)=-u(MU==1); % i,j-1
 
     % conditions for MU=2 and (grad(u)<0)
-    V0a(MU==2)=-cx(MU==2); % i,j
-    V1a(MU==2)=cx(MU==2); % i,j+1
+    V0a(MU==2)=-u(MU==2); % i,j
+    V1a(MU==2)=u(MU==2); % i,j+1
 
     % conditions for MV=1 (grad(v)>0)
-    V0a(MV==1)=V0a(MV==1)+cy(MV==1); % i,j
-    V4a(MV==1)=-cy(MV==1); % i-1,j
+    V0a(MV==1)=V0a(MV==1)+v(MV==1); % i,j
+    V4a(MV==1)=-v(MV==1); % i-1,j
 
     % conditions for MV=2 (grad(v)<0)
-    V0a(MV==2)=V0a(MV==2)-cy(MV==2); % i,j
-    V3a(MV==2)=cy(MV==2); % i+1,j
+    V0a(MV==2)=V0a(MV==2)-v(MV==2); % i,j
+    V3a(MV==2)=v(MV==2); % i+1,j
 
     % Filling V-matrix
     V0=V0+V0a*dtdx;%.*(1.-alfa);

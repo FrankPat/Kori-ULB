@@ -11,7 +11,7 @@ function PlotMainFigure(ctr,par,x,y,sn,S0,H,u,B,MASK,glMASK,LSF)
         sn1(H==0)=NaN;
     else
         sn1=sn-S0;
-        plim=max(max(abs(sn-S0)));
+        plim=max(max(abs(sn1)));
         plim(plim==0)=1;
     end
     u1=u;
@@ -34,7 +34,7 @@ function PlotMainFigure(ctr,par,x,y,sn,S0,H,u,B,MASK,glMASK,LSF)
         colorbar;
     else
         imagescn(x,y,sn1,[-plim plim]);
-        title('Ice thickness change (m)');
+        title('Surface elevation change (m)');
         colormap(ax1,crameri(par.dcolor));
         colorbar;
     end

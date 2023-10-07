@@ -18,7 +18,8 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
 
     if ctr.upstream==1
         % conditions for diffusion scheme (init)
-        V0=zeros(ctr.imax,ctr.jmax)+8*epsilon*dtdx; % i,j
+        V0=zeros(ctr.imax,ctr.jmax)+8*epsilon*dtdx-(max(Mb,0)+ ...
+            max(Melt,0))*ctr.dt./max(H,1e-5); % i,j
         V1=zeros(ctr.imax,ctr.jmax)-2*epsilon*dtdx; % i,j+1
         V2=V1; % i,j-1
         V3=V1; % i+1,j
@@ -78,32 +79,25 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
         V8(MV==2)=-vp1(MV==2); % i+2,j
 
         % Filling V-matrix
-        V0=V0+V0a*dtdx2;%.*(1.-alfa);
-        V1=V1+V1a*dtdx2;%.*(1.-alfa);
-        V2=V2+V2a*dtdx2;%.*(1.-alfa);
-        V3=V3+V3a*dtdx2;%.*(1.-alfa);
-        V4=V4+V4a*dtdx2;%.*(1.-alfa);
-        V5=V5*dtdx2;%.*(1.-alfa);
-        V6=V6*dtdx2;%.*(1.-alfa);
-        V7=V7*dtdx2;%.*(1.-alfa);
-        V8=V8*dtdx2;%.*(1.-alfa);
+        V0=V0+V0a*dtdx2;
+        V1=V1+V1a*dtdx2;
+        V2=V2+V2a*dtdx2;
+        V3=V3+V3a*dtdx2;
+        V4=V4+V4a*dtdx2;
+        V5=V5*dtdx2;
+        V6=V6*dtdx2;
+        V7=V7*dtdx2;
+        V8=V8*dtdx2;
     else
-        V0=8*epsilon*dtdx+dtdx2*(u-um1+v-vm1); % i,j
+        V0=8*epsilon*dtdx+dtdx2*(u-um1+v-vm1)- ...
+            (max(Mb,0)+max(Melt,0))*ctr.dt./max(H,1e-5); % i,j
         V1=-2*epsilon*dtdx+dtdx2*u; % i,j+1
         V2=-2*epsilon*dtdx-dtdx2*um1; % i,j-1
         V3=-2*epsilon*dtdx+dtdx2*v; % i+1,j
         V4=-2*epsilon*dtdx-dtdx2*vm1; % i-1,j
     end
 
-    R0=dtr-dtr*(1-par.omega).*V0-circshift(dtr,[0 -1])*(1-par.omega) ...
-        .*V1-circshift(dtr,[0 1])*(1-par.omega).*V2-circshift(dtr,[-1 0])* ...
-        (1-par.omega).*V3-circshift(dtr,[1 0])*(1-par.omega).*V4 ...
-        +(max(Mb,0)+max(Melt,0))*ctr.dt./max(H,1e-5);
-    if ctr.upstream==1
-        R0=R0-circshift(dtr,[0 2])*(1-par.omega).*V5-circshift(dtr,[2 0])* ...
-            (1-par.omega).*V6-circshift(dtr,[0 -2])*(1-par.omega).*V7- ...
-            circshift(dtr,[-2 0])*(1-par.omega).*V8;
-    end
+    R0=dtr;
 
     V0(MASK==0)=0; % note that for shelf=1, MASK=glMASK in the call
     V1(MASK==0)=0;
@@ -172,15 +166,15 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
     end
 
     if ctr.upstream==1
-        V=[reshape(V0(VM==1)*par.omega+1,nodes,1)
-            V1(V1~=0)*par.omega
-            V2(V2~=0)*par.omega
-            V3(V3~=0)*par.omega
-            V4(V4~=0)*par.omega
-            V5(V5~=0)*par.omega
-            V6(V6~=0)*par.omega
-            V7(V7~=0)*par.omega
-            V8(V8~=0)*par.omega
+        V=[reshape(V0(VM==1)+1,nodes,1)
+            V1(V1~=0)
+            V2(V2~=0)
+            V3(V3~=0)
+            V4(V4~=0)
+            V5(V5~=0)
+            V6(V6~=0)
+            V7(V7~=0)
+            V8(V8~=0)
             V9(V9~=0)
             V10(V10~=0)
             V11(V11~=0)
@@ -200,11 +194,11 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
             node(V11~=0)
             node(V12~=0)];
     else
-        V=[reshape(V0(VM==1)*par.omega+1,nodes,1)
-            V1(V1~=0)*par.omega
-            V2(V2~=0)*par.omega
-            V3(V3~=0)*par.omega
-            V4(V4~=0)*par.omega
+        V=[reshape(V0(VM==1)+1,nodes,1)
+            V1(V1~=0)
+            V2(V2~=0)
+            V3(V3~=0)
+            V4(V4~=0)
             V9(V9~=0)
             V10(V10~=0)
             V11(V11~=0)

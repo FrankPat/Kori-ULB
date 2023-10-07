@@ -1,8 +1,8 @@
 function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
     dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo,MASKo,Mb,Ts,As,G,u,VAF,VA0,POV, ...
     SLC,Ag,Af,Btau,IVg,IVf,glflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR, ...
-    Wd,Wtil,Bmelt,CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof, ...
-    Sof,TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage]= ...
+    Wd,Wtil,Bmelt,NumStab,CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node, ...
+    VM,Tof,Sof,TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage,shelftune]= ...
     InitMatrices(ctr,par,default,fc)
     
 % Kori-ULB
@@ -35,10 +35,17 @@ function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
     
     [H,Ho,B,Bo,Mb,Ts,u,dSLR,CMB,FMB,Tof,Sof,TFf,Tsf,Mbf,Prf,Evpf, ...
         runofff,Melt,damage]=deal(zeros(ctr.imax,ctr.jmax));
+    Mb=Mb+ctr.MbConst;
+    Ts=Ts+ctr.TsConst;
     [MASK,MASKo,ncor]=deal(ones(ctr.imax,ctr.jmax));
     [VAF,VA0,POV,SLC,Ag,Af,IVg,IVf,glflux,dHdt]=deal(zeros(ctr.nsteps,1));
     G=zeros(ctr.imax,ctr.jmax)+default.G0;
     
+    if ctr.NumCheck==1
+        NumStab=zeros(ctr.nsteps,8);
+    else
+        NumStab=false;
+    end
     if ctr.BedAdj>0
         Btau=zeros(ctr.imax,ctr.jmax)+par.bedrelax;
     else
@@ -53,7 +60,16 @@ function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
         InvVol=false;
     end
     p=zeros(ctr.imax,ctr.jmax)+par.n;
-    As=ctr.Asin;
+    if length(ctr.Asin)>1
+        As=ctr.Asin;
+    else
+        As=zeros(ctr.imax,ctr.jmax)+ctr.Asin;
+    end
+    if length(ctr.shelftune)>1
+        shelftune=ctr.shelftune;
+    else
+        shelftune=zeros(ctr.imax,ctr.jmax)+ctr.shelftune;
+    end
     if ctr.subwaterflow>0
         Wd=zeros(ctr.imax,ctr.jmax)+1e-8;
     else

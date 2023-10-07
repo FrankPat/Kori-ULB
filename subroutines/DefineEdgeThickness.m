@@ -20,6 +20,7 @@ function [he,fi]=DefineEdgeThickness(ctr,par,glMASK,H)  %VL: add par
     w4=1-min(1,H./(H4*exp(-ctr.delta/1e5)))*(1-exp(-ctr.delta/1e5));
     he=(H1.*w1.*IC1+H2.*w2.*IC2+H3.*w3.*IC3+H4.*w4.*IC4)./ ...
         (IC1+IC2+IC3+IC4);
+    he(glMASK==6)=NaN;
     he(isnan(he))=H(isnan(he)); % no neighbouring ice-cells (iceberg)
     he(he<par.SeaIceThickness)=par.SeaIceThickness; %VL: make sure he can't become 0
     fi=min(1,H./he);

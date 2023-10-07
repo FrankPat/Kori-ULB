@@ -1,5 +1,5 @@
 function [Ts_yc,Pr_yc]=ExtractAnnualCycle(fc,ctr,par,Pr0,Ts0,S0,sn, ...
-    MASK,lat,DeltaSL,snp_atm)
+    MASK,lat,DeltaSL,DeltaT,snp_atm)
 
 % Kori-ULB
 % Extract annual cycles from input forcing data (atmospheric data)
@@ -48,7 +48,7 @@ function [Ts_yc,Pr_yc]=ExtractAnnualCycle(fc,ctr,par,Pr0,Ts0,S0,sn, ...
             n=n+1;
         end
         if ctr.MbType==1
-            Pr_yc=Pr_yc.*exp(0.05*par.Tlapse*(max(sn,DeltaSL)-S0));
+            Pr_yc=Pr_yc.*exp(0.05*(par.Tlapse*(max(sn,DeltaSL)-S0)));
         elseif ctr.MbType==2
             Pr_yc=Pr_yc.*(1+0.053*(par.Tlapse*(max(sn,DeltaSL)-S0)));
         end
