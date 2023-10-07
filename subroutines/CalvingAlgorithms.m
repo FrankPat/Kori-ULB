@@ -94,6 +94,42 @@ function [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
         wy=zeros(ctr.imax,ctr.jmax);
         LSF=LSFfunction(LSF,ctr,wx,wy,node,nodes,VM,MASK);
     end
+    
+    if ctr.calving==6
+%         ux1=circshift(uxssa,[0 1]); % ux(i,j-1)
+%         uy1=circshift(uyssa,[1 0]); % uy(i-1,j)
+%         MAGV=max(0.0000000001,sqrt((0.5*(uxssa+ux1)).^2+(0.5*(uyssa+uy1)).^2));
+%         XUV=-(0.5*(uxssa+ux1))./MAGV;
+%         YUV=-(0.5*(uyssa+uy1))./MAGV;
+%         uxh=(0.5*(uxssa+ux1));
+%         uyh=(0.5*(uyssa+uy1));
+        
+        CMB=zeros(size(LSF));
+        
+%         MAGV=sqrt((0.5*(uxssa+ux1)).^2+(0.5*(uyssa+uy1)).^2);
+%         CR=MAGV-ctr.WV;
+        
+%         CRx=CR.*XUV;
+%         CRy=CR.*YUV;
+%         wx=uxh+CRx;
+%         wy=uyh+CRy;
+        
+        q=max(-B/ctr.qpos,0);
+        wx=uxssa.*(1-q);
+        wx(:,ctr.jmax)=wx(:,ctr.jmax-1);
+        wy=wx*0;
+        LSF=LSFfunction(LSF,ctr,wx,wy,node,nodes,VM,MASK); %Advect calving front position
+
+%         if floor(cnt/ctr.LSFReset)==ceil(cnt/ctr.LSFReset)  %Reset LSF field for stability, tune with ctr.LSFReset
+%             LSF(LSF<-1)=-1;
+%             LSF(LSF>1)=1;
+%         end
+        
+        if ctr.Calve_Mass==1%if false, will update LSF field but NOT remove any ice
+            CMB(LSF<0)=30;
+%             CMB=-min(wx,0);
+        end
+    end
 end
 
 

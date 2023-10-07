@@ -5,10 +5,9 @@ function [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm,bMASKx,bMASKy
 
     A=zeros(ctr.imax,ctr.jmax)+ctr.Ao;
     if ctr.Tcalc==2
-        A=0.5*par.atune*par.a1*exp(par.Q1./par.R*(1./(par.T0+par.pmp*H)-1./ ...
-            (Tbc+par.T0)));
-        A(Tb>-6.5)=0.5*par.atune*par.a2*exp(par.Q2./par.R*(1./(par.T0+ ...
-            par.pmp*H(Tb>-6.5))-1./(Tbc(Tb>-6.5)+par.T0)));
+        A=0.5*par.atune*((Tbc<-6.5)*par.a1+(Tbc>=-6.5)*par.a2).* ...
+            exp(((Tbc<-6.5)*par.Q1+(Tbc>=-6.5)*par.Q2)./par.R.* ...
+            (1./(par.T0-par.pmp*H)-1./(Tb+par.T0)));
         [Ax,Ay,Ad]=StaggeredA(A);
     else
         Ax=A;

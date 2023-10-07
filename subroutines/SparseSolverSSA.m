@@ -1,4 +1,5 @@
-function [u,v,s]=SparseSolverSSA(nodeu,nodev,s0,MASKmx,MASKmy,bMASK, ...
+function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
+    MASKmx,MASKmy,bMASK, ...
     H,eta,betax,betay,u,v,usia,vsia,udx,udy,taudx,taudy,ctr,par)
 
 % Kori-ULB
@@ -184,7 +185,7 @@ function [u,v,s]=SparseSolverSSA(nodeu,nodev,s0,MASKmx,MASKmy,bMASK, ...
         U2(MASKb==1)=-4.*eta(MASKb==1)/ctr.delta;
         Uv0(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
         Uv2(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-        R0(MASKb==1)=0.5*par.rho*par.g*H(MASKb==1).^2.*(1.-par.rho/par.rhow);
+        R0(MASKb==1)=0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(MASKb==1).^2;
 
         % i=1: periodic boundary condition
         MASKb=zeros(ctr.imax,ctr.jmax); % boundary mask
@@ -600,12 +601,13 @@ function [u,v,s]=SparseSolverSSA(nodeu,nodev,s0,MASKmx,MASKmy,bMASK, ...
         D=diag(diag(A));
         C1=tril(A);
         C2=D\triu(A);
-        [s,flag]=bicgstab(A,R,par.veltol,par.veliter,C1,C2,s0);
+        [s,flag,relres,iter]=bicgstab(A,R,par.veltol,par.veliter,C1,C2,s0);
         if flag>0
             s=A\R;
         end
     else
         s=A\R;
+        [flag,relres,iter]=deal(false);
     end
     u=s(nodeu);
     v=s(nodev);

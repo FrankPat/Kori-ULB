@@ -18,7 +18,6 @@ function [damage]=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF)
     db=(lambda0./(par.rho*par.g*(H+eps))-max(HAF,0))*par.rho/(par.rhow-par.rho);
     % surface crevasses
     ds=lambda0./(par.rho*par.g*(H+eps))+par.rhow*dw/par.rho;
-%     damage=max(0,min(max(ds,ds+db),H*par.dlim));
     damage=max(0,min(max(ds,ds+db),H*par.dlim));
     
 end

@@ -8,13 +8,14 @@ function tmp=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts,MASK,DeltaT)
     Tgrad=-(G+taudxy.*uvel/par.secperyear)/par.K;
     l=sqrt(2*par.kdif*(H+1e-8)./max(Mb,1e-8)*par.secperyear);
     repl=repmat(l,[1,1,ctr.kmax]);
-    repH=repmat(H+1e-8,[1,1,ctr.kmax]);
+    repH2=repmat(H,[1,1,ctr.kmax]);
+    repH=max(repH2,1e-8);
     repTs=repmat(Ts,[1,1,ctr.kmax]);
     repTgrad=repmat(Tgrad,[1,1,ctr.kmax]);
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
     tmp=repTs+sqrt(pi)*0.5*repl.*repTgrad.* ...
         (erf((1-repz).*repH./repl)-erf(repH./repl))+par.T0;
-    Tp=par.pmp*repH.*repz;
+    Tp=par.pmp*repH2.*repz;
 
     % Ice shelf and open ocean
     repmask=repmat(MASK,[1,1,ctr.kmax]);

@@ -30,38 +30,14 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     advecy(vt>0)=vt(vt>0).*dTdyp(vt>0)*dt;
     advecy(vt<0)=vt(vt<0).*dTdym(vt<0)*dt;
     
-    % adjusted vertical velocity (old f.ETISh version)
-%     ws=-max(Mb,1e-5)-(ud.*ushllib(:,:,1)+ub).*sqrt(gradxy);
-%     wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
-%     w=repmat(ws,[1,1,ctr.kmax]).*wshllib;
-    
     % vertical velocity according to Pattyn (2010) with Lliboutry shape
     % function
-    % FP: check whether +Bmelt (Huybrechts) or -Bmelt (Pattyn, 2010) - it
-    % should be -Bmelt I think
+
     wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
     w=repmat(-max(Mb,1e-5),[1,1,ctr.kmax]).*wshllib-Bmelt+ut.* ...
         (repmat(gradsx,[1,1,ctr.kmax])-zl.*repmat(gradHx,[1,1,ctr.kmax])) ...
         +vt.*(repmat(gradsy,[1,1,ctr.kmax])-zl.*repmat(gradHy,[1,1,ctr.kmax]));
-    
-%     % integrated verical velocity according to Pattyn (2003)
-%     w=zeros(ctr.imax,ctr.jmax,ctr.kmax);
-%     u=repmat(udx,[1,1,ctr.kmax]).*ushllib+repmat(ubx,[1,1,ctr.kmax]);
-%     v=repmat(udy,[1,1,ctr.kmax]).*ushllib+repmat(uby,[1,1,ctr.kmax]);
-%     dudx=(u-circshift(u,[0 1 0]))/ctr.delta;
-%     dudx(u<0)=(circshift(u(u<0),[0 -1 0])-u(u<0))/ctr.delta;
-%     dvdy=(v-circshift(v,[0 1 0]))/ctr.delta;
-%     dvdy(v<0)=(circshift(v(v<0),[0 -1 0])-v(v<0))/ctr.delta;
-%     w(:,:,ctr.kmax)=u(:,:,ctr.kmax).*(gradsx-gradHx)+v(:,:,ctr.kmax).* ...
-%         (gradsy-gradHy)-Bmelt;
-%     for k=ctr.kmax-1:-1:1
-%         u1=0.5*H.*(dudx(:,:,k)+dudx(:,:,k+1));
-%         v1=0.5*H.*(dvdy(:,:,k)+dvdy(:,:,k+1));
-%         u2=(u(:,:,k+1)-u(:,:,k)).*(gradsx-0.5*(zeta(k)+zeta(k+1))*gradHx);
-%         v2=(v(:,:,k+1)-v(:,:,k)).*(gradsy-0.5*(zeta(k)+zeta(k+1))*gradHy);
-%         w(:,:,k)=(u1+u2+v1+v2)*(zeta(k)-zeta(k+1))+w(:,:,k+1);
-%     end
-    
+        
     % Internal heating
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
     dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/(par.n+2),[1,1,ctr.kmax]).* ...
@@ -73,8 +49,9 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     extraterm=max(min(fric-advecx-advecy,5),-5); %10
 
     % Temperature solution
-    repH=repmat(H+1e-8,[1,1,ctr.kmax]);
-    Tp=par.pmp*repH.*repz;
+    repH2=repmat(H,[1,1,ctr.kmax]);
+    repH=max(repH2,1e-8);
+    Tp=par.pmp*repH2.*repz;
     atp=(2*par.kdif*par.secperyear./(repH.*dzm)-w)*dt./(repH.*dzc);
     btp=1+2*par.kdif*par.secperyear*dt./((repH.^2).*dzp.*dzm);
     ctp=(2*par.kdif*par.secperyear./(repH.*dzp)+w)*dt./(repH.*dzc);

@@ -62,10 +62,10 @@ if nargin==0
    figure('menubar','none','numbertitle','off','Name','crameri options:')
    
    if license('test','image_toolbox')
-      imshow(imread('crameri7.0.png')); 
+      imshow(imread('crameri8.0.png')); 
    else
       axes('pos',[0 0 1 1])
-      image(imread('crameri7.0.png')); 
+      image(imread('crameri8.0.png')); 
       axis image off
    end
    
@@ -111,7 +111,7 @@ if any(tmp)
 end
 % Load RGB values and interpolate to NLevels: 
 try
-   S = load('CrameriColourMaps7.0.mat',ColormapName); 
+   S = load('CrameriColourMaps8.0.mat',ColormapName); 
    cmap = S.(ColormapName); 
 catch
    error(['Unknown colormap name ''',ColormapName,'''. Try typing crameri with no inputs to check the options and try again.'])
@@ -150,7 +150,7 @@ end
 % end
 % 
 % clear f k 
-% save('CrameriColourMaps7.0.mat')
+% save('CrameriColourMaps8.0.mat')
 end
 
 

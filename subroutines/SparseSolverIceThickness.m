@@ -1,5 +1,5 @@
-function [H]=SparseSolverIceThickness(node,nodes,Mb,H,B,SLR,MASK,dtdx,dtdx2, ...
-    d,u,v,ctr,cnt,bMASK,VM,par)
+function [H,flag,relres,iter]=SparseSolverIceThickness(node,nodes,Mb, ...
+    H,B,SLR,MASK,dtdx,dtdx2,d,u,v,ctr,cnt,bMASK,VM,par)
 
 % Kori-ULB
 % Sparse solver of the ice thickness equation
@@ -296,11 +296,12 @@ function [H]=SparseSolverIceThickness(node,nodes,Mb,H,B,SLR,MASK,dtdx,dtdx2, ...
     % Cholesky factor and solve
     if ctr.inverse==1 || ctr.ItSolv==0
         s=A\R;
+        [flag,relres,iter]=deal(false);
     else
         D=diag(diag(A));
         C1=tril(A);
         C2=D\triu(A);
-        [s,flag]=pcg(A,R,par.Htol,par.Hiter,C1,C2);
+        [s,flag,relres,iter]=pcg(A,R,par.Htol,par.Hiter,C1,C2);
         if flag>0 || cnt==1
             s=A\R;
         end

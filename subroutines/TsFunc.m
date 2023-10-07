@@ -1,4 +1,4 @@
-function [Ts,Tsf]=TsFunc(ctr,par,Tsf,S0,sn,DeltaSL,DeltaT)
+function [Ts]=TsFunc(ctr,par,Tsf,S0,sn,DeltaSL,DeltaT)
 
 % Kori-ULB
 % Surface temperature parametrizations

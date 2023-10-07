@@ -8,13 +8,13 @@ function [d,udx,udy,ud,ubx,uby,ub,uxsia,uysia,p,pxy]= ...
 % defined based on basal temperature gradients.
 
     if ctr.Tcalc==2
-        p=par.n-1+par.Q1*G.*Hm./(par.K*par.R.*(h2d(Tb)+par.T0).^2);
+        p=par.n-1+par.Q1*G.*Hm./(par.R.*(h2d(Tb)+par.T0).^2);
         % on staggered d-grid
-        pxy=par.n-1+par.Q1*G.*H./(par.K*par.R.*(Tb+par.T0).^2); % on h-grid     
-        px=par.n-1+par.Q1*G.*Hmx./(par.K*par.R.*(0.5* ...
+        pxy=par.n-1+par.Q1*G.*H./(par.R.*(Tb+par.T0).^2); % on h-grid     
+        px=par.n-1+par.Q1*G.*Hmx./(par.R.*(0.5* ...
             (Tb+circshift(Tb,[0 -1]))+par.T0).^2); % on h-grid     
-        py=par.n-1+par.Q1*G.*Hmy./(par.K*par.R.*(0.5* ...
-            (Tb+circshift(Tb,[-1 0]))+par.T0).^2); % on h-grid     
+        py=par.n-1+par.Q1*G.*Hmy./(par.R.*(0.5* ...
+            (Tb+circshift(Tb,[-1 0]))+par.T0).^2); % on h-grid
     end
     if ctr.u0>1e10
         ds=1; % disable correction when u0 is default value
