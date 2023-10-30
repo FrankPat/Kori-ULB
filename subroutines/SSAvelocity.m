@@ -3,7 +3,7 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
     uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
     nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
-    Mb,Melt,dtdx,dtdx2,VM,damage,shelftune)
+    Mb,Melt,dtdx,dtdx2,VM,damage,shelftune,ThinComp)
 
 % Kori-ULB
 % Iterative solution to the SSA velocity (both pure SSA and hybrid model
@@ -56,17 +56,23 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
         udy=zeros(ctr.imax,ctr.jmax);
     end
     if ctr.damage==1 && cnt>1
-        dtr=TransportDamage(node,nodes,damage,Mb,Melt,H,glMASK,dtdx,dtdx2, ...
+        dtr=TransportDamage(node,nodes,damage,Mb,Melt,ThinComp,H,glMASK,dtdx,dtdx2, ...
             uxssa,uyssa,ctr,cnt,bMASK,VM,par);
-        damage=dtr;
     end
     for ll=1:par.visciter % iteration over effective viscosity
         [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
             glMASK,shelftune,ctr);
         if ctr.damage==1 && cnt>1
             if ll==1
-                damage=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF);
-                damage=min(par.damlim*H,max(damage,dtr));
+		% compute surface damage
+                ds=SurfaceDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
+		% compute basal damage (and Kachuck term, necessary for transport)
+		db=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF);
+                % compute thinning component (jablasco: here o after?)
+		ThinComp = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,H);
+		% total damage is sum of surface and basal damage
+		% damage is limited to damlim
+		damage=min(par.damlim*H,max(ds+db,dtr));
                 scale_eta=(H-min(damage,H-eps))./(H+eps);
             end
         else

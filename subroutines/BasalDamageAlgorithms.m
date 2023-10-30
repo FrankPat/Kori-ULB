@@ -1,17 +1,13 @@
-function [db,KTerm]=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
-
-    % Kori-ULB
+function [db]=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
     % Damage functions
-
     % ctr.bsldamage=0: No damage
     % ctr.bsldamage=1: Nye damage function      (following Sun et al., 2017: 10.5194/tc-11-2543-2017)
     % ctr.bsldamage=2: Weertman damage function (following Lai et al., 2020: 10.1038/s41586-020-2627-8)
-    %                  Is the factro pi/2 valid for basal crevasses?
+    %                  Is the factor pi/2 valid for basal crevasses?
     % ctr.bsldamage=3: Kachuck damage function  (following Kachuck et al., 2022: 10.1017/jog.2022.12 )
 
     % Initialize to zeros
     db=zeros(ctr.imax,ctr.jmax);
-    KTerm=zeros(ctr.imax,ctr.jmax);
 
     if ctr.bsldamage~=0
         eps=1e-8; % avoid zero values
@@ -31,11 +27,6 @@ function [db,KTerm]=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
 	if ctr.bsldamage==3
             alpha=lambda2./lambda1;
             db=(par.rho/(par.rhow-par.rho))*((2+alpha).*tau1./(par.rho*par.g*(H+eps));
-	    % Compute source term necessary for transport
-            alpha  = lambda2./lambda1;
-            n_star = (4*par.n*(1+alpha+alpha.*alpha))./(4*(1+alpha+alpha.*alpha)+3*(par.n-1)*alpha.*alpha);
-            So     = (par.rho*(par.rhow-par.rho)*par.g)./(2*tau1.*par.rhow);
-            KTerm  = max(H,1e-5).*n_star.*(1-So).*lambda1;
 	end
     end
     % Limit to damage limit
