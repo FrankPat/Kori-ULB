@@ -5,7 +5,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2017-2023 Frank Pattyn                                  %
+% Copyright (c) 2017-2023 Frank Pattyn                                       %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -90,7 +90,8 @@ par.Hiter=20; % max iteration number for iterative thickness solver (20)
 par.Htol=1e-6;  % tolerance for iterative thickness solver (1e-6)
 par.Z=2*(par.g*par.rho)^par.n; % SIA isothermal pre-term
 par.dlim=0.3; % Limit on local crevasses depth (% of H)
-par.damlim=0.7; % limit on total damage (% of H)
+par.damlim=0.5; % limit on total damage (% of H)
+par.taulim=0.75e6; % yield strength of ice [Pa]. Necessary if bassis is activated.
 
 %-----------------------------------
 % Ice-ocean interactions
@@ -116,7 +117,7 @@ par.rhoref=1033;
 par.lambda1=-5.73e-2;
 par.lambda2=8.32e-2;
 par.lambda3=7.61e-4;
-% par.gamma0=1.447733676e4; % seems not used
+par.gamma0=1.447733676e4;
 par.gamma1=0.545;
 par.gamma2=3.5e-5;
 par.CdGamT=1.1e-3;
@@ -202,7 +203,7 @@ par.a2=2e-16;
 % PDD model parameters
 %-----------------------------------
 
-par.PDDth=0; % PDD threshold temperature (0°C)
+par.PDDth=0; % PDD threshold temperature (0ï¿½C)
 par.Train=2;
 par.Tsnow=0;
 par.snowfac=3/par.rho; % PDD factor for snow melt
