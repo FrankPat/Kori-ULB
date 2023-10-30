@@ -26,7 +26,7 @@ function [db]=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
 
 	if ctr.bsldamage==3
             alpha=lambda2./lambda1;
-            db=(par.rho/(par.rhow-par.rho))*((2+alpha).*tau1./(par.rho*par.g*(H+eps));
+            db=(par.rho/(par.rhow-par.rho))*(tau1.*(2+alpha)./(par.rho*par.g*(H+eps)));
 	end
     end
     % Limit to damage limit

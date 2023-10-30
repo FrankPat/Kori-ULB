@@ -67,9 +67,10 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
 		% compute surface damage
                 ds=SurfaceDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
 		% compute basal damage (and Kachuck term, necessary for transport)
-		db=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF);
-                % compute thinning component (jablasco: here o after?)
-		ThinComp = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,H);
+		%db=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF);
+                db=0.0;
+		% compute thinning component (jablasco: here o after?)
+		ThinComp = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
 		% total damage is sum of surface and basal damage
 		% damage is limited to damlim
 		damage=min(par.damlim*H,max(ds+db,dtr));

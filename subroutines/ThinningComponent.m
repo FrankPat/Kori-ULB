@@ -1,4 +1,4 @@
-function [ThinComp] = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,H) 
+function [ThinComp] = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H) 
     % Thinning component of basal crevasses.
     % Term comes from Bassis and Ma (2015) and is applied in Kachuck et al., (2022)
     % Applies to long wavelenghts: i.e. the widths of basal crevasses are large compared to the ice thickness
@@ -7,6 +7,7 @@ function [ThinComp] = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,H)
     ThinComp = zeros(ctr.imax,ctr.jmax); 
     % 1st/2nd principal strain
     [lambda1,lambda2]=PrincipalStrain(dudx,dvdy,dudy,dvdx); 
+    tau1=2*lambda1.*eta;
     % Thinning component
     alpha    = lambda2./lambda1;
     n_star   = (4*par.n*(1+alpha+alpha.*alpha))./(4*(1+alpha+alpha.*alpha)+3*(par.n-1)*alpha.*alpha);
