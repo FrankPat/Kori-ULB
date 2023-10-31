@@ -42,7 +42,27 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
     EffStr=max(EffStr,1e-12);
     eta=0.5*H.*A.^(-1./par.n).*EffStr.^((1-par.n)/(2*par.n));
     eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
-    
+
+    % Bassis et al., (2021) regularization
+    % DOI: 0.1126/science.abf6271
+    if crt.bassis==1
+        d_grain=5e-3; % Diffussion creep. Grain size [m]
+        eta_diff=H.*A.^(-1./par.n)/(2.*d_grain.^2);
+        tau_c=2.*eta.*EffStr./H; % yield strength from strain
+        if tau_c > par.tauice
+            % Once reached the failure, the effective stress decreases with increasing strain rate.
+            tau_y=max(tau_c-(tau_c-par.taulim).*EffStr./(H.*par.strcrit),par.taulim);
+            eta_plas=H.*tau_y./(2.*EffStr);
+        else
+            % If failure not reached, the ice yield strength value doesn't change
+            eta_plas = H.*par.tauice./(2.*EffStr);
+        end
+        % numerical convergence value
+        eta_min=1e6;
+	% regularized viscosity
+        eta=eta_min+1./(1./eta_diff+1./eta_disl+1./eta_plas);
+    end
+
     if ctr.shelf==1 || ctr.schoof>0
         MASKb=ones(ctr.imax,ctr.jmax); % use constant eta on edges of ice shelf
         if ctr.mismip==0

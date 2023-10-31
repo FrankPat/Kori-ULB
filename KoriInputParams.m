@@ -91,7 +91,10 @@ par.Htol=1e-6;  % tolerance for iterative thickness solver (1e-6)
 par.Z=2*(par.g*par.rho)^par.n; % SIA isothermal pre-term
 par.dlim=0.3; % Limit on local crevasses depth (% of H)
 par.damlim=0.5; % limit on total damage (% of H)
-par.taulim=0.75e6; % yield strength of ice [Pa]. Necessary if bassis is activated.
+par.tauice=0.75e6; % yield strength of ice [Pa]. Necessary if bassis is activated.
+par.taulim=0.1e6;  % minimum yield strength [Pa] that accounts for the fact that ice maintains
+                   % strength after failure. Set to be small enough to make little difference
+par.strcrit=0.1;   % Critical strain rate if yield strength is reached. Sensitive parameter.
 
 %-----------------------------------
 % Ice-ocean interactions
