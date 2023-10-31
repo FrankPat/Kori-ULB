@@ -41,6 +41,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.damage(any(ismember(fields(ctr),'damage'))==0)=0;
     ctr.srfdamage(any(ismember(fields(ctr),'srfdamage'))==0)=0;
     ctr.bsldamage(any(ismember(fields(ctr),'bsldamage'))==0)=0;
+    ctr.bassis(any(ismember(fields(ctr),'bassis'))==0)=0;
     ctr.GroundedMelt(any(ismember(fields(ctr),'GroundedMelt'))==0)=0;
     ctr.PDDcalc(any(ismember(fields(ctr),'PDDcalc'))==0)=0;
     ctr.monthly(any(ismember(fields(ctr),'monthly'))==0)=0;

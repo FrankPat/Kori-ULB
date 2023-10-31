@@ -45,7 +45,7 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
 
     % Bassis et al., (2021) regularization
     % DOI: 0.1126/science.abf6271
-    if crt.bassis==1
+    if ctr.bassis==1
         d_grain=5e-3; % Diffussion creep. Grain size [m]
         eta_diff=H.*A.^(-1./par.n)/(2.*d_grain.^2);
         tau_c=2.*eta.*EffStr./H; % yield strength from strain
