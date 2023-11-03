@@ -20,7 +20,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2017-2023 Frank Pattyn                                       %
+% Copyright (c) 2017-2023 Frank Pattyn                                  %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -43,7 +43,7 @@
 %                                                                       %
 % Other software packages used in Kori-ULB:                             %
 %                                                                       %
-%   - crameri: Fabio Crameri's scientific colormaps, version 4.0.       %
+%   - crameri: Fabio Crameri's scientific colormaps, version 8.0.       %
 %              http://www.fabiocrameri.ch/colourmaps.php                %
 %              C. Greene (UTIG, Texas) http://www.chadagreene.com       %
 %   - convnfft, conv2fft:  Bruno Luong <brunoluong@yahoo.com>           %
@@ -389,11 +389,11 @@ for cnt=cnt0:ctr.nsteps
     [Ts]=TsFunc(ctr,par,Tsf,sninit,sn,fc.DeltaSL(cnt),fc.DeltaT(cnt));
     % Correction/calculation of SMB components
     if Mb_update==0
-        [Pr,Evp,runoff]=MbFunc(ctr,Prf,Evpf,runoff,runofff, ...
-            Tsf,Ts,sn,X,Y,Lj,Li,fc.DeltaT(cnt));
+        [Pr,Evp,runoff]=MbFunc(ctr,par,Prf,Evpf,runoff,runofff, ...
+            Tsf,sn,sninit,X,Y,Lj,Li,fc.DeltaT(cnt),fc.DeltaSL(cnt));
     else
-        [Mb,~,~]=MbFunc(ctr,Mbf,Evpf,runoff,runofff, ...
-            Tsf,Ts,sn,X,Y,Lj,Li,fc.DeltaT(cnt));
+        [Mb,~,~]=MbFunc(ctr,par,Mbf,Evpf,runoff,runofff, ...
+            Tsf,sn,sninit,X,Y,Lj,Li,fc.DeltaT(cnt),fc.DeltaSL(cnt));
     end
     if ctr.PDDcalc==1 % PDD MODEL
         if ctr.monthly==0
@@ -403,7 +403,7 @@ for cnt=cnt0:ctr.nsteps
             % Evaluates mean yearly runoff at the beginning of the year
             if rem(time(cnt),1)==0
                 [Ts_yc,Pr_yc]=ExtractAnnualCycle(fc,ctr,par,Pr, ...
-                    Ts,sninit,sn,MASK,lat,fc.DeltaT(cnt),snp_atm);
+                    Ts,sninit,sn,MASK,lat,fc.DeltaSL(cnt),fc.DeltaT(cnt),snp_atm);
                 [runoff,acc,rain,Smelt]=PDDmonthly(Ts_yc,Pr_yc,par,ctr);
             end
             Pr=mean(Pr_yc,3);

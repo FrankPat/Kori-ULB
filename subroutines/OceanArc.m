@@ -23,7 +23,7 @@ function [arcocn,distocn,distgl]=OceanArc(MASK,H,MASKlk,ctr,par)
     MASK8=circshift(MASK,[1 1]); % MASK(i-1,j-1)
     ifdo=zeros(ctr.imax,ctr.jmax);
     ifdo(MASK~=1&MASKlk==0&(MASK1~=0|MASK2~=0|MASK3~=0|MASK4~=0|MASK5~=0|MASK6~=0|MASK7~=0|MASK8~=0))=1;
-    [jo,io] = meshgrid(1:ctr.imax,1:ctr.jmax);
+    [io,jo] = meshgrid(1:ctr.imax,1:ctr.jmax);
     distocn(MASK==0)=0;
 
     for mm=1:narc

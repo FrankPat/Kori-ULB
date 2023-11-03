@@ -12,5 +12,3 @@ function [lambda0,lambda1]=PrincipalStrain(dudx,dvdy,dudy,dvdx)
     lambda1=b-d;
 
 end
-
-
