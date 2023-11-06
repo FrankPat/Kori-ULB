@@ -18,8 +18,8 @@ function mat2nc2D(input,output,dx)
     mat_file = load(input);
     
     % load dimension variables
-    y = length(mat_file.y);
-    x = length(mat_file.x);
+    [y,x] = size(mat_file.H);
+    %[y,x] = size(mat_file.H);
     
     % load file names 
     vars = fieldnames(mat_file);
