@@ -130,6 +130,31 @@ function [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
 %             CMB=-min(wx,0);
         end
     end
+
+    % jablasco: von Mises calving law. Following Wilner et al., (2023)
+    % DOI: 10.5194/tc-2023-86 
+    if ctr.calving==7
+
+        % determine eigenvalues of strain tensor
+        StrTen=zeros(2,2);
+        StrEig1=zeros(ctr.imax,ctr.jmax);
+        StrEig2=zeros(ctr.imax,ctr.jmax);
+        for i=1:ctr.imax
+            for j=1:ctr.jmax
+                StrTen(1,1)=dudx(i,j);
+                StrTen(2,2)=dvdy(i,j);
+                StrTen(1,2)=0.5*(dudy(i,j)+dvdx(i,j));
+                StrTen(2,1)=StrTen(1,2);
+                StrVal=eig(StrTen);
+                StrEig1(i,j)=StrVal(1);
+                StrEig2(i,j)=StrVal(2);
+            end
+        end
+        EffStr=sqrt(0.5*(max(0,StrEig1).^2+max(0,StrEig2).^2));
+        tauVM=sqrt(3)*(EffStr./A).^(1./par.n);
+        CMB=sqrt(uxssa.^2+uyssa.^2).*(tauVM./ctr.taulim);
+    end
+
 end
 
 
