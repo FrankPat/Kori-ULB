@@ -152,7 +152,7 @@ function [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
         end
         EffStr=sqrt(0.5*(max(0,StrEig1).^2+max(0,StrEig2).^2));
         tauVM=sqrt(3)*(EffStr./A).^(1./par.n);
-        CMB=sqrt(uxssa.^2+uyssa.^2).*(tauVM./ctr.taulim);
+        CMB=sqrt(uxssa.^2+uyssa.^2).*(tauVM./par.tauice);
     end
 
 end
