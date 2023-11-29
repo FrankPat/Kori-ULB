@@ -41,7 +41,6 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
     EffStr=dudx.^2+dvdy.^2+dudx.*dvdy+0.25*(dudy+dvdx).^2;
     EffStr=max(EffStr,1e-12);
     eta=0.5*H.*A.^(-1./par.n).*EffStr.^((1-par.n)/(2*par.n));
-    eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
 
     % Bassis et al., (2021) regularization
     % DOI: 0.1126/science.abf6271
@@ -60,8 +59,10 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
         % numerical convergence value
         eta_min=1e6;
 	% regularized viscosity
-        eta=eta_min+1./(1./eta_diff+1./eta_disl+1./eta_plas);
+        eta=eta_min+1./(1./eta_diff+1./eta+1./eta_plas);
     end
+
+    eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
 
     if ctr.shelf==1 || ctr.schoof>0
         MASKb=ones(ctr.imax,ctr.jmax); % use constant eta on edges of ice shelf

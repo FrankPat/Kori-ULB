@@ -74,8 +74,8 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
 		% compute thinning component (jablasco: here o after?)
 		ThinComp = 0.0;
 		ThinComp = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
-		ThinComp(db=0.0)=0.0;
-		ThinComp(ds=0.0)=0.0;
+		ThinComp(db==0.0)=0.0;
+		ThinComp(ds==0.0)=0.0;
 		% total damage is sum of surface and basal damage
 		% damage is limited to damlim
 		damage=min(par.damlim*H,max(ds+db,dtr));
