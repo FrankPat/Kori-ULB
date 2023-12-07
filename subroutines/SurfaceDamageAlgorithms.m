@@ -20,9 +20,11 @@ function [ds]=SurfaceDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H)
 	% hence, the ice thickness is considered in there
         tau1=2*lambda1.*eta;
 	
+        dw=zeros(ctr.imax,ctr.jmax);
+
 	if ctr.srfdamage==1 || ctr.srfdamage==2
 	    % No water thickness (TO DO!)
-	    dw=zeros(ctr.imax,ctr.jmax);
+	    %dw=zeros(ctr.imax,ctr.jmax);
             ds=tau1./(par.rho*par.g*(H+eps))+par.rhow*dw/par.rho;
             if ctr.srfdamage==2
                 ds=ds.*pi*0.5;
