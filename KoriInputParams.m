@@ -144,6 +144,21 @@ par.C_eps_lazero = 0.6; % Slope correction parameter
 par.alpha_coeff_lazero = 3.87e-5; % degC-1 Thermal expansion coefficient
 par.beta_coeff_lazero = 7.86e-4; % psu-1 Haline contraction coefficient
 
+%-----------------------------------
+% Calving
+%-----------------------------------
+
+par.LSFReset=30;
+
+% PD12 calving scheme (ctr.calving=3)
+par.Calve_PD_MinThick=30;
+par.Calve_PD_MaxCalveRate=3e5;
+
+% PD15 calving scheme (ctr.calving=4)
+par.Calve_P_MaxCalveRate=3000;
+par.Calve_P_CritCrevasse=0.75;
+par.Ucrit1=1600;
+par.Ucrit2=1900;
 
 %-----------------------------------
 % Isostasy

@@ -145,14 +145,14 @@ end
 % Default values of control parameters (if different from zero)
 %---------------------------------------------------------------
 
-default=InitDefault;
+default=InitDefaultVio;
 
 %---------------------
 % Input parameters
 %---------------------
 
 % Initialization of undefined control parameters (default values)
-[ctr,fc]=InitCtr(ctr,fc,default);
+[ctr,fc]=InitCtrVio(ctr,fc,default);
 
 % Impossible combination of parameters
 if ctr.SSA==0 && ctr.shelf==1
@@ -188,10 +188,11 @@ slicecount=0;
 [ctr.snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn, ...
     Mb_update,Li,Lj,dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo, ...
     MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
-    dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
+    cfflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
     CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
-    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage,shelftune]= ...
-    InitMatrices(ctr,par,default,fc);
+    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage,shelftune,Melt_mean, ... 
+    Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean,CMB_mean,FMB_mean, ...
+    fluxmx_mean,fluxmy_mean]=InitMatricesVio(ctr,par,default,fc);
 
 %----------------------------------------------------------------------
 % Read inputdata
@@ -492,7 +493,7 @@ for cnt=cnt0:ctr.nsteps
     else
         if ctr.subwaterflow>0
             Bmelt=zeros(ctr.imax,ctr.jmax)+1e-8;
-            Bmelt(MASK--0)=0;
+            Bmelt(MASK==0)=0;
         end
     end
 
@@ -568,8 +569,7 @@ for cnt=cnt0:ctr.nsteps
 % Define distance to open ocean for calving and sub-shelf melting
 %------------------------------------------------------------------
 
-    if ctr.glMASKexist==1 && (par.ArcOcean==1 || ctr.calving==1 || ...
-            ctr.calving==2) && ctr.basin==0
+    if ctr.glMASKexist==1 && par.ArcOcean==1 && ctr.basin==0
         if cntT==1
             [arcocn,~,~]=OceanArc(MASK,H,MASKlk,ctr,par);
             arcocn0=arcocn;
@@ -613,11 +613,11 @@ for cnt=cnt0:ctr.nsteps
 %---------------------------------------------------------------
 
     if ctr.calving>=1 && ctr.shelf==1
-        [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, ...
-            uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho,bMASK,LSF,node,nodes,VM);
-        if ctr.calving<5
-            [FMB]=VerticalFaceMelt(ctr,par,SLR,B,Melt,MASK,glMASK,he);
-        end
+        [he,fi]=DefineEdgeThickness(ctr,par,glMASK,H); % Pollard 2015   %VL: add par
+        [FMB,FMR]=VerticalFaceMeltVio(ctr,par,SLR,B,Melt,MASK,glMASK,he);
+        [CMB,LSF,CR]=CalvingAlgorithmsVio(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, ...
+            uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho,bMASK,LSF,node,nodes,VM, ...
+            cnt,ux,uy,Melt,he,fi,FMR);
     end
 
 %---------------------------------------------------------
@@ -627,7 +627,7 @@ for cnt=cnt0:ctr.nsteps
 
     if ctr.diagnostic==0
         % sum of mass balance components for continuity equation
-        Massb=Mb-Bmelt-Melt-CMB-FMB;
+        Massb=Mb-Bmelt-Melt;
         if ctr.basin==1
             Massb(bMASK==1)=0; % only for ice thickness evolution
         end
@@ -637,7 +637,7 @@ for cnt=cnt0:ctr.nsteps
         if ctr.NumCheck==1
             NumStab(cnt,6:8)=[relresH,iterH,flagH];
         end
-        if ctr.calving>=5
+        if ctr.calving>=1
             % remove icebergs
             Hn(LSF<0)=par.SeaIceThickness;
         end
@@ -703,11 +703,11 @@ for cnt=cnt0:ctr.nsteps
 %------------------------------------------------------
     
     if islogical(ZB)==0
-        mb_basin(cnt,:,:)=BasinFlux(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
+        mb_basin(cnt,:,:)=BasinFluxVio(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
             H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,squeeze(mb_basin(cnt,:,:)),B,Bn,SLR,ZB);
         mbcomp(cnt,:)=sum(squeeze(mb_basin(cnt,:,:)),2);
     else
-        mbcomp(cnt,:)=MBcomponents(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
+        mbcomp(cnt,:)=MBcomponentsVio(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
             H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,mbcomp(cnt,:),B,Bn,SLR);
     end
     IVg(cnt)=sum(H(MASK==1))*ctr.delta^2;
@@ -721,16 +721,25 @@ for cnt=cnt0:ctr.nsteps
             sum(fluxmy(glMASK==2 & circshift(glMASK,[-1 0])>2))+ ...
             sum(-fluxmx(glMASK>2 & circshift(glMASK,[0 -1])==2))+ ...
             sum(-fluxmy(glMASK>2 & circshift(glMASK,[-1 0])==2));
+        cfflux(cnt)=sum(fluxmx(glMASK==5&circshift(glMASK,[0 -1])>5))+ ...
+            sum(fluxmy(glMASK==5&circshift(glMASK,[-1 0])>5))+ ...
+            sum(-fluxmx(glMASK>5&circshift(glMASK,[0 -1])==5))+ ...
+            sum(-fluxmy(glMASK>5&circshift(glMASK,[-1 0])==5));
     end
     if islogical(ZB)==0
         for i=1:max(ZB(:))
             IVg_basin(cnt,i)=sum(H(MASK==1 & H>0 & ZB==i))*ctr.delta^2;
             Ag_basin(cnt,i)=sum(sum(MASK==1 & H>0 & ZB==i))*ctr.delta^2;
             if ctr.shelf==1
-                IVf_basin(cnt,i)=(sum(sum(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
-                Af_basin(cnt,i)=(sum(H(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
+                Af_basin(cnt,i)=(sum(sum(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
+                IVf_basin(cnt,i)=(sum(H(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
             end
         end
+    end
+
+    if ctr.CalculateYearlyMeans==1
+        [Melt_mean,Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean,CMB_mean,FMB_mean,fluxmx_mean,fluxmy_mean]=YearlyMeans(Melt, ...
+            Bmelt,Ts,Mb,To,So,TF,CMB,FMB,fluxmx,fluxmy,cnt,ctr,Melt_mean,Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean,CMB_mean,FMB_mean,fluxmx_mean,fluxmy_mean);
     end
 
 %------------------------------------
@@ -764,7 +773,7 @@ for cnt=cnt0:ctr.nsteps
 %------------------------------------
 
     if ctr.runmode<2 && rem(cnt-1,plotst)==0
-        PlotMainFigure(ctr,par,x,y,sn,S0,H,u,B,MASK,glMASK,LSF);
+        PlotMainFigureVio(ctr,par,x,y,sn,S0,H,u,B,MASK,glMASK,LSF);
     end
     
 %------------------------------------
