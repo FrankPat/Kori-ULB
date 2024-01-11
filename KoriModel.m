@@ -612,12 +612,19 @@ for cnt=cnt0:ctr.nsteps
 % Melting at vertical face of calving front
 %---------------------------------------------------------------
 
+    %if ctr.calving>=1 && ctr.shelf==1
+    %    [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, ...
+    %        uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho,bMASK,LSF,node,nodes,VM);
+    %    if ctr.calving<5
+    %        [FMB]=VerticalFaceMelt(ctr,par,SLR,B,Melt,MASK,glMASK,he);
+    %    end
+    %end
     if ctr.calving>=1 && ctr.shelf==1
-        [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, ...
-            uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho,bMASK,LSF,node,nodes,VM);
-        if ctr.calving<5
-            [FMB]=VerticalFaceMelt(ctr,par,SLR,B,Melt,MASK,glMASK,he);
-        end
+        [he,fi]=DefineEdgeThickness(ctr,par,glMASK,H); % Pollard 2015   %VL: add par
+        [FMB,FMR]=VerticalFaceMeltVio(ctr,par,SLR,B,Melt,MASK,glMASK,he);
+        [CMB,LSF,CR]=CalvingAlgorithmsVio(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, ...
+            uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho,bMASK,LSF,node,nodes,VM, ...
+            cnt,ux,uy,Melt,he,fi,FMR);
     end
 
 %---------------------------------------------------------

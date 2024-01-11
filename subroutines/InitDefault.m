@@ -31,6 +31,7 @@ function default=InitDefault
     default.G0=0.042;
     default.u0=1e12;
     default.Asin=1e-10;
+    default.Hcrit=200; % PD16, Vio
     
 end
 

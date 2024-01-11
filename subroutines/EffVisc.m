@@ -1,10 +1,14 @@
 function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
     glMASK,shelftune,ctr)
 
-% Kori-ULB
-% Effective viscosity of the SSA solution. On the borders of the domain, a
-% fixed value is determined based on a fixed ice thickness (Hshelf) that
-% determines eta1
+    % Kori-ULB
+    % Effective viscosity of the SSA solution. On the borders of the domain, a
+    % fixed value is determined based on a fixed ice thickness (Hshelf) that
+    % determines eta1
+
+    Hshelf=200; % Mean ice shelf thickness to control viscosity on domain edge
+    Tf=.5*par.rho*par.g*Hshelf*(1.-par.rho/par.rhow); % on h-grid
+    eta1=0.5*Hshelf.*Tf.^(1.-par.n)./A;
 
     dudx=(uxssa-circshift(uxssa,[0 1]))/ctr.delta;
     dudx(:,1)=dudx(:,2);
@@ -50,40 +54,54 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
         tau_c=2.*eta.*EffStr./H; % yield strength from strain
         if tau_c > par.tauice
             % Once reached the failure, the effective stress decreases with increasing strain rate.
-            tau_y=max(tau_c-(tau_c-par.taulim).*EffStr./(H.*par.strcrit),par.taulim);
+            tau_y=max(tau_c-(tau_c-par.taulim).*EffStr./par.strcrit,par.taulim);
             eta_plas=H.*tau_y./(2.*EffStr);
         else
             % If failure not reached, the ice yield strength value doesn't change
             eta_plas = H.*par.tauice./(2.*EffStr);
         end
         % numerical convergence value
-        eta_min=1e6;
+        eta_min=H.*1e6;
 	% regularized viscosity
-        eta=eta_min+1./(1./eta_diff+1./eta+1./eta_plas);
+        eta=eta_min+1./((1./eta_diff)+(1./eta)+(1./eta_plas));
     end
 
+    eta(eta<=0)=NaN; % Vio code
     eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
+    eta(isnan(eta))=1e7; % Vio code
+    
+    % NEED TO CHECK THE VISCOSITY ON EDGES OF ICE SHELF/SEA ICE!!!
+    % NOW TAKEN AS A CONSTANT VALUE FOR STABILITY AS MOSTLY SEA ICE
 
     if ctr.shelf==1 || ctr.schoof>0
         MASKb=ones(ctr.imax,ctr.jmax); % use constant eta on edges of ice shelf
         if ctr.mismip==0
             MASKb(3:ctr.imax-2,3:ctr.jmax-2)=0;
         elseif ctr.mismip==1
-            MASKb(:,1:ctr.jmax-2)=0;
+	    eta(:,1)=eta(:,3); % ice divide - symmetric (Vio)
+            eta(1,:)=eta(3,:); % periodic BC (Vio)
+            eta(ctr.imax,:)=eta(ctr.imax-2,:); % periodic BC (Vio)
+            MASKb=ones(ctr.imax,ctr.jmax); % use constant eta on edges of ice shelf (Vio)
+	    MASKb(:,1:ctr.jmax-2)=0;
+	    eta(MASKb==1 & MASK==0)=eta1(MASKb==1 & MASK==0); %(Vio)
         elseif ctr.mismip==2
+	    MASKb=ones(ctr.imax,ctr.jmax); % use constant eta on edges of ice shelf (Vio)
             MASKb(1:ctr.imax-2,1:ctr.jmax-2)=0;
+	    eta(MASKb==1 & MASK==0)=eta1(MASKb==1 & MASK==0); % (Vio)
         end
-        MASKb(MASK==1)=0;
+        
+	MASKb(MASK==1)=0;
         % remove outliers (10%) - especially important for basins where
         % grounded parts may exist on the domain boundary
-        eta(MASKb==1)=trimmean(eta(MASKb==1),10);
-        
+        %eta(MASKb==1)=trimmean(eta(MASKb==1),10);
+        eta(MASKb==1)=eta1(MASKb==1); % jablasco
+
         % Instead of calculating effective viscosity on the sea ice,
         % keep constant viscosity. Need to further check how to deal
         % with this. May be quoted
-        eta(glMASK==6)=1e7;
+        eta(glMASK==6)=eta1(glMASK==6); %1e7; % jablasco
     end
-    
+   
+    eta=min(max(eta,1e5),1e15); % Vio code
+
 end
-
-

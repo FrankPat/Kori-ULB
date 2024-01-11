@@ -104,6 +104,15 @@ function [Melt,butfac,H]=SubShelfMelt(ctr,fc,par,Tf,To,So,TF,butfac, ...
             % MISMIP+ melt function
             Melt=0.2*tanh((HB-B)/75).*max(-100-HB,0)*ctr.meltfac;
             Melt(MASK==1)=0;
+        case 101
+            % MISMIP+ calving melt function
+            Melt=zeros(ctr.imax,ctr.jmax);
+            for j=1:ctr.jmax
+                if (j*ctr.delta)>=480e3
+                    Melt(:,j)=100.0;
+                end
+            end
+            Melt(MASK==1)=0;      
         case 11
             % run model with optimized sub-shelf melt
             Melt=MeltInv;

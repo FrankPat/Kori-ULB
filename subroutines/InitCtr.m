@@ -32,6 +32,13 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.subwaterflow(any(ismember(fields(ctr),'subwaterflow'))==0)=0;
     ctr.SlidAdjust(any(ismember(fields(ctr),'SlidAdjust'))==0)=0;
     ctr.calving(any(ismember(fields(ctr),'calving'))==0)=0;
+    % Vio params
+    ctr.CalveCirc(any(ismember(fields(ctr),'CalveCirc'))==0)=0;
+    ctr.LimitFront(any(ismember(fields(ctr),'LimitFront'))==0)=0;
+    ctr.FrontalMelt(any(ismember(fields(ctr),'FrontalMelt'))==0)=0;
+    ctr.CR(any(ismember(fields(ctr),'CR'))==0)=0;
+    ctr.WV(any(ismember(fields(ctr),'WV'))==0)=0;
+    % end Vio params
     ctr.HydroFrac(any(ismember(fields(ctr),'HydroFrac'))==0)=0;
     ctr.GeoidCalc(any(ismember(fields(ctr),'GeoidCalc'))==0)=0;
     ctr.starttime(any(ismember(fields(ctr),'starttime'))==0)=0;
@@ -79,6 +86,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.C(any(ismember(fields(ctr),'C'))==0)=default.Cpico;
     ctr.gammaTplume(any(ismember(fields(ctr),'gammaTplume'))==0)=default.gammaTplume;
     ctr.M0(any(ismember(fields(ctr),'M0'))==0)=default.M0picop;
+    ctr.Hcrit(any(ismember(fields(ctr),'Hcrit'))==0)=default.Hcrit; % Vio
     
     if any(ismember(fields(fc),'DeltaT'))==0
         fc.DeltaT=zeros(ctr.nsteps,1);

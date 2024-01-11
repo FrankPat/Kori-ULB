@@ -43,5 +43,7 @@ function [ds]=SurfaceDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H)
 	end
     end
     % Limit to damage limit
-    ds=max(0,min(ds,H*par.dlim));   
+    %ds=max(0,min(ds,H*par.dlim));
+    % jablasco: surface damage cannot be larger than 10% of the ice sheet
+    ds=max(0,min(ds,H*(1-par.rho/par.rhow)))  
 end
