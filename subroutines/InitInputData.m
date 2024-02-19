@@ -11,6 +11,17 @@ function [As,Mb0,Ts0,MASK0,MASK,bMASK,H,B,H0,B0]= ...
     MASK(MASK==3)=0; % ice shelves in BedMap2/Bedmachine identified with MASK=3
 
     bMASK=zeros(ctr.imax,ctr.jmax);
+
+    % jablasco: delete bedrocks below 2000m
+    for i=1:ctr.imax
+        for j=1:ctr.jmax
+            if B(i,j)<-1999.9
+                H(i,j)=H(i,j)+(-2000.0-B(i,j));
+                B(i,j)=-2000.0;
+        end
+    end
+
+
     if ctr.basin==1
         bMASK(MASKo==-1)=1;
         MASK(bMASK==1)=1;

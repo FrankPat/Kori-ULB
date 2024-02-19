@@ -51,17 +51,18 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
     if ctr.bassis==1
         d_grain=5e-3; % Diffussion creep. Grain size [m]
         eta_diff=H.*A.^(-1./par.n)/(2.*d_grain.^2);
-        tau_c=2.*eta.*EffStr./H; % yield strength from strain
-        if tau_c > par.tauice
-            % Once reached the failure, the effective stress decreases with increasing strain rate.
-            tau_y=max(tau_c-(tau_c-par.taulim).*EffStr./par.strcrit,par.taulim);
-            eta_plas=H.*tau_y./(2.*EffStr);
-        else
-            % If failure not reached, the ice yield strength value doesn't change
-            eta_plas = H.*par.tauice./(2.*EffStr);
-        end
+        %tau_c=2.*eta.*(EffStr.^0.5)./H; % yield strength from strain
+        eta_plas = H.*par.tauice./(2.*EffStr.^0.5);
+	%if tau_c > par.tauice
+        %    % Once reached the failure, the effective stress decreases with increasing strain rate.
+        %    tau_y=max(tau_c-(tau_c-par.taulim).*(EffStr.^0.5)./par.strcrit,par.taulim);
+        %    eta_plas=H.*tau_y./(2.*EffStr.^0.5);
+        %else
+        %    % If failure not reached, the ice yield strength value doesn't change
+        %    eta_plas = H.*par.tauice./(2.*EffStr.^0.5);
+        %end
         % numerical convergence value
-        eta_min=H.*1e6;
+        eta_min=H.*1e5;
 	% regularized viscosity
         eta=eta_min+1./((1./eta_diff)+(1./eta)+(1./eta_plas));
     end
@@ -102,6 +103,7 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
         eta(glMASK==6)=eta1(glMASK==6); %1e7; % jablasco
     end
    
-    eta=min(max(eta,1e5),1e15); % Vio code
+    %eta=min(max(eta,1e5),1e15); % Vio code
+    eta=min(max(eta,1e5),1e15); % Javi code: for basin level
 
 end

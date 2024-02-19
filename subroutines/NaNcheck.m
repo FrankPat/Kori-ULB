@@ -29,7 +29,7 @@ function [flag]=NaNcheck(flag,H,ux,uy)
         flag=true;
     end
     if any(H(:)>1e6)
-        fprintf('\n\n A unrealistic large ice thickness (H>1e6) occured\n');
+        fprintf('\n\n A unrealistic large ice thickness (H>1e5) occured\n');
         flag=true;
     end
 

@@ -3,7 +3,7 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
     uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
     nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
-    Mb,Melt,dtdx,dtdx2,VM,damage,shelftune,ThinComp)
+    Mb,Melt,dtdx,dtdx2,VM,damage,shelftune,ThinComp,MASKlk)
 
 % Kori-ULB
 % Iterative solution to the SSA velocity (both pure SSA and hybrid model
@@ -55,30 +55,42 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
         udx=zeros(ctr.imax,ctr.jmax);
         udy=zeros(ctr.imax,ctr.jmax);
     end
-    if ctr.damage==1 && cnt>1
-        dtr=TransportDamage(node,nodes,damage,Mb,Melt,ThinComp,H,glMASK,dtdx,dtdx2, ...
-            uxssa,uyssa,ctr,cnt,bMASK,VM,par);
-    end
+    %if ctr.damage==1 && cnt>1
+    %    %dtr=TransportDamageBassisMa(node,nodes,damage,Mb,Melt,ThinComp,H,glMASK,dtdx,dtdx2, ...
+    %    %    uxssa,uyssa,ctr,cnt,bMASK,VM,par);
+    %    dtr=TransportDamageSun(node,nodes,damage,Mb,Melt,ThinComp,H,glMASK,dtdx,dtdx2, ...
+    %        uxssa,uyssa,ctr,cnt,bMASK,VM,par);
+    %end
     for ll=1:par.visciter % iteration over effective viscosity
         [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
             glMASK,shelftune,ctr);
         if ctr.damage==1 && cnt>1
             if ll==1
+		% compute transport from previous damage
+		% Sun transport: melting reduces damage
+                ThinComp = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
+                ThinComp(MASK==1)=0.0;
+		ThinComp(MASKlk==1)=0.0;
+		dtr=TransportDamageSun(node,nodes,damage,Mb,Melt,ThinComp,H,glMASK,dtdx,dtdx2, ...
+                                       uxssa,uyssa,ctr,cnt,bMASK,VM,par);
+	        % Bassis-Ma transport: melting increases damage
+		%dtr=TransportDamageBassisMa(node,nodes,damage,Mb,Melt,ThinComp,H,glMASK,dtdx,dtdx2, ...
+                %                       uxssa,uyssa,ctr,cnt,bMASK,VM,par);
 		% compute surface damage
-                ds=SurfaceDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
+                ds=SurfaceDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,MASK);
 		% compute basal damage (and Kachuck term, necessary for transport)
 		db=BasalDamageAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF);
                 % Avoid basal damage on grounded ice
 		db(MASK==1)=0.0;
+		% Avoid damage on lakes
+		db(MASKlk==1)=0.0;
+		ds(MASKlk==1)=0.0;
 		%db=0.0;
-		% compute thinning component (jablasco: here o after?)
-		ThinComp = 0.0;
-		ThinComp = ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
-		ThinComp(db==0.0)=0.0;
-		ThinComp(ds==0.0)=0.0;
+		
 		% total damage is sum of surface and basal damage
 		% damage is limited to damlim
-		damage=min(par.damlim*H,max(ds+db,dtr));
+		dlim=max(0,min(db+ds,H.*par.dlim));
+		damage=min(par.damlim*H,max(dlim,dtr));
                 scale_eta=(H-min(damage,H-eps))./(H+eps);
             end
         else

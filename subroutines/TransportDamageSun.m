@@ -19,7 +19,7 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,ThinComp,H,MASK,dtdx,dtdx2
     if ctr.upstream==1
         % conditions for diffusion scheme (init)
         V0=zeros(ctr.imax,ctr.jmax)+8*epsilon*dtdx+(max(Mb,0)+ ...
-            max(Melt,0)+max(ThinComp,0))*ctr.dt./max(H,1e-5); % i,j
+            max(Melt,0)-max(ThinComp,0))*ctr.dt./max(H,1e-5); % i,j
         V1=zeros(ctr.imax,ctr.jmax)-2*epsilon*dtdx; % i,j+1
         V2=V1; % i,j-1
         V3=V1; % i+1,j
