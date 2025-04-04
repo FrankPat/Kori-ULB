@@ -65,7 +65,7 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
             glMASK,shelftune,ctr);
         if ctr.damage==1 && cnt>1
             if ll==1
-                damage=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF);
+                damage=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK);
                 damage=min(par.damlim*H,max(damage,dtr));
                 scale_eta=(H-min(damage,H-eps))./(H+eps);
             end

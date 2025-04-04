@@ -38,10 +38,10 @@ function mbcomp=MBcomponents(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
         mbcomp(8)=VariabFlux(min(H+max(-H,Mb),Melt),H,MASK,par.SeaIceThickness);
     end
     if ctr.calving>=1 && ctr.shelf==1
-        mbcomp(9)=VariabFlux(CMB,H,MASK,par.SeaIceThickness); % CMB
-        mbcomp(10)=VariabFlux(FMB,H,MASK,par.SeaIceThickness); % FMB
+        mbcomp(9)=VariabFlux(min(H+max(-H,Mb),CMB),H,MASK,par.SeaIceThickness); % CMB
+        mbcomp(10)=VariabFlux(min(H+max(-H,Mb),FMB),H,MASK,par.SeaIceThickness); % FMB
     end
-    mbcomp(11)=mbcomp(1)-mbcomp(2)-mbcomp(7)-mbcomp(8)-mbcomp(10);
+    mbcomp(11)=mbcomp(1)-mbcomp(2)-mbcomp(7)-mbcomp(8);
     
 % Grounded ice sheet components
 % (12) surface mass balance
