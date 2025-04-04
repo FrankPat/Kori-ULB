@@ -1,4 +1,5 @@
-function [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm,bMASKx,bMASKy)
+function [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm, ...
+    bMASKx,bMASKy,wat)
 
 % Kori-ULB
 % Thermomechanical coupling using Arrhenius relationship
@@ -8,6 +9,9 @@ function [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm,bMASKx,bMASKy
         A=0.5*par.atune*((Tbc<-6.5)*par.a1+(Tbc>=-6.5)*par.a2).* ...
             exp(((Tbc<-6.5)*par.Q1+(Tbc>=-6.5)*par.Q2)./par.R.* ...
             (1./(par.T0-par.pmp*H)-1./(Tb+par.T0)));
+        if wat
+            A=A.*(1+1.8125*min(wat(:,:,ctr.kmax),0.03)); % Adding effect of water content with enthalpy
+        end
         [Ax,Ay,Ad]=StaggeredA(A);
     else
         Ax=A;

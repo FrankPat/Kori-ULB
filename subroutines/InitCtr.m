@@ -25,6 +25,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.TsType(any(ismember(fields(ctr),'TsType'))==0)=0;
     ctr.Tcalc(any(ismember(fields(ctr),'Tcalc'))==0)=0;
     ctr.Tinit(any(ismember(fields(ctr),'Tinit'))==0)=0;
+    ctr.Enthalpy(any(ismember(fields(ctr),'Enthalpy'))==0)=0;
     ctr.BedAdj(any(ismember(fields(ctr),'BedAdj'))==0)=0;
     ctr.m(any(ismember(fields(ctr),'m'))==0)=default.m; % default linear sliding
     ctr.p(any(ismember(fields(ctr),'p'))==0)=0;
@@ -32,6 +33,11 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.subwaterflow(any(ismember(fields(ctr),'subwaterflow'))==0)=0;
     ctr.SlidAdjust(any(ismember(fields(ctr),'SlidAdjust'))==0)=0;
     ctr.calving(any(ismember(fields(ctr),'calving'))==0)=0;
+    ctr.CalveCirc(any(ismember(fields(ctr),'CalveCirc'))==0)=0;
+    ctr.LimitFront(any(ismember(fields(ctr),'LimitFront'))==0)=0;
+    ctr.FrontalMelt(any(ismember(fields(ctr),'FrontalMelt'))==0)=0;
+    ctr.CR(any(ismember(fields(ctr),'CR'))==0)=0;
+    ctr.WV(any(ismember(fields(ctr),'WV'))==0)=0;
     ctr.HydroFrac(any(ismember(fields(ctr),'HydroFrac'))==0)=0;
     ctr.GeoidCalc(any(ismember(fields(ctr),'GeoidCalc'))==0)=0;
     ctr.starttime(any(ismember(fields(ctr),'starttime'))==0)=0;
@@ -39,7 +45,6 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.mismip(any(ismember(fields(ctr),'mismip'))==0)=0;
     ctr.basin(any(ismember(fields(ctr),'basin'))==0)=0;
     ctr.damage(any(ismember(fields(ctr),'damage'))==0)=0;
-    ctr.GroundedMelt(any(ismember(fields(ctr),'GroundedMelt'))==0)=0;
     ctr.PDDcalc(any(ismember(fields(ctr),'PDDcalc'))==0)=0;
     ctr.monthly(any(ismember(fields(ctr),'monthly'))==0)=0;
     ctr.runoffcorr(any(ismember(fields(ctr),'runoffcorr'))==0)=0;
@@ -60,6 +65,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.upstream(any(ismember(fields(ctr),'upstream'))==0)=default.upstream;
     ctr.ItSolv(any(ismember(fields(ctr),'ItSolv'))==0)=default.ItSolv;
     ctr.Asin(any(ismember(fields(ctr),'Asin'))==0)=default.Asin;
+    ctr.taulim(any(ismember(fields(ctr),'taulim'))==0)=default.taulim;
     if any(ismember(fields(ctr),'gammaT'))==0
         if ctr.meltfunc==1
             ctr.gammaT=default.gammaTlin;
@@ -76,6 +82,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.C(any(ismember(fields(ctr),'C'))==0)=default.Cpico;
     ctr.gammaTplume(any(ismember(fields(ctr),'gammaTplume'))==0)=default.gammaTplume;
     ctr.M0(any(ismember(fields(ctr),'M0'))==0)=default.M0picop;
+    ctr.Hcrit(any(ismember(fields(ctr),'Hcrit'))==0)=default.Hcrit;
     
     if any(ismember(fields(fc),'DeltaT'))==0
         fc.DeltaT=zeros(ctr.nsteps,1);

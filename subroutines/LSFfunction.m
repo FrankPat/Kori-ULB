@@ -144,6 +144,19 @@ function LSF=LSFfunction(LSF,ctr,u,v,node,nodes,VM,MASK)
     end
 
     LSF(node>0)=s(node(node>0));
+    
+%     % Avoid numerical issues when calving front coincides with grounding line.
+%     % Allow for a couple of grid cells of calving front between GL and open ocean.
+%     M1 = circshift(MASK,[3 3]);
+%     M2 = circshift(MASK,[3 -3]);
+%     M3 = circshift(MASK,[-3 3]);
+%     M4 = circshift(MASK,[-3 -3]);
+%     a = (MASK==1)|(M1==1)|(M2==1)|(M3==1)|(M4==1);
+%     M(a) = 1;
+% 
+%     % Calving front cannot retreat further than the GL by definition.
+%     LSF(M==1) = R0(M==1);
+
 end
 
 
