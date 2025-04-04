@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                 Kori-ULB: The ULB ice flow model                      %
 %                                                                       %
-%                       Version 0.91 July 2023                          %
+%                      Version 0.92 March 2025                          %
 %                                                                       %
 %                           Frank Pattyn                                %
 %                    Laboratoire de Glaciologie                         %
@@ -9,10 +9,15 @@
 %                       Frank.Pattyn@ulb.be                             %
 %                                                                       %
 %                       co-developpers team                             %
-%                            Kevin Bulthuis                             %
-%                         Violaine Coulon                               %
-%                           Sainan Sun                                  %
-%                             Lars Zipf                                 %
+%                        Javier Blasco Navarro                          %
+%                         Kevin Bulthuis                                %
+%                      Violaine Coulon                                  %
+%                         Elise Kazmierczak                             %
+%                        Daniel Moreno Parada                           %
+%                        Thomas Gregov                                  %
+%                        Olivia Raspoet                                 %
+%                        Sainan Sun                                     %
+%                          Lars Zipf                                    %
 %                                                                       %
 %                                                                       %
 % Kori-ULB (The ULB Ice Flow Model) is a 2.5-dimensional finite         %
@@ -20,7 +25,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2017-2023 Frank Pattyn                                  %
+% Copyright (c) 2017-2025 Frank Pattyn                                  %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -98,7 +103,7 @@
 %                   VERSION history                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% v0.91 (07/2023)
+% v0.92 (03/2025)
 %
 %------------------------------------------------------------------------
 
@@ -110,7 +115,7 @@ function varargout=KoriModel(infile,outfile,ctr,fc)
 %-------------------
 
 ctr.model='Kori-ULB';
-ctr.version='v0.91';
+ctr.version='v0.92';
 fprintf('---%s %s---\n  [%s Frank.Pattyn@ulb.be]\n',ctr.model, ...
     ctr.version,char(169));
 
@@ -178,7 +183,7 @@ slicecount=0;
 %--------------------------------------------------------------------
 
 [Asor,stdB,v,vx,vy,tmp,Db,To,So,Tb,uxssa,uyssa,deltaZ,arcocn,arcocn0, ...
-    Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit,ZB, ...
+    E,wat,Epmp,Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit,ZB, ...
     flagHu,frb,kei,Ll]=deal(false);
 
 %---------------------
@@ -186,9 +191,9 @@ slicecount=0;
 %---------------------
 
 [ctr.snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn, ...
-    Mb_update,Li,Lj,dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo, ...
+    Mb_update,Li,Lj,dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo,glMASK0, ...
     MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
-    dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
+    cfflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
     CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
     TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage,shelftune]= ...
     InitMatrices(ctr,par,default,fc);
@@ -267,7 +272,15 @@ So0=So;
 
 cntT=0;
 if ctr.Tcalc>=1
-    [tmp,Tb,zeta,dzc,dzp,dzm]=InitTempParams(ctr,par,tmp,Ts,H);
+    [tmp,Tb,zeta,dzc,dzp,dzm,E,Epmp,wat]=InitTempParams(ctr,par,tmp,Ts,H,E,wat);
+    if ctr.Enthalpy==1
+        CTSm=zeros(size(tmp));
+        CTSp=zeros(size(tmp));
+        Ht=zeros(size(Tb));
+        Hw=zeros(size(Tb));
+        Dbw=zeros(size(Tb));
+        Dfw=zeros(size(E));
+    end
 end
 
 %--------------------------------------
@@ -450,7 +463,8 @@ for cnt=cnt0:ctr.nsteps
 % Thermomechanical coupling with method of Lliboutry (1979) and Ritz (1992)
 %--------------------------------------------------------------------------
 
-    [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm,bMASKx,bMASKy);
+    [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm, ...
+        bMASKx,bMASKy,wat);
 
 %-------------------------------------------------
 % SIA velocity and diffusivities
@@ -467,7 +481,7 @@ for cnt=cnt0:ctr.nsteps
     if ctr.Tcalc>=1 % on d-grid
         if cntT==1
             if (ctr.Tinit==1 && cnt==1) || ctr.Tinit==2
-                tmp=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts, ...
+                [tmp,E,Epmp,wat]=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts, ...
                     MASK,fc.DeltaT(cnt));
             end
             if ctr.Tinit<2
@@ -480,11 +494,19 @@ for cnt=cnt0:ctr.nsteps
                     Bmelt=BasalMelting(ctr,par,G,taudxy, ...
                         vec2h(uxssa,uyssa),H,tmp,dzm,MASK);
                 else
-                    [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-                        ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
-                        udx,udy,ub,ubx,uby,zeta,gradxy,H,dzc,dzm,dzp, ...
-                        G,taudxy,A,fc.DeltaT,MASK,Bmelt,cnt);
-                    Bmelt=BasalMelting(ctr,par,G,taudxy,ub,H,tmp,dzm,MASK);
+                    if ctr.Enthalpy==1
+                        [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
+                            Enthalpy3d(par,ctr,E,Mb,Ts,G,A,H, ...
+                            pxy,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy,gradxy,taudxy, ...
+                            udx,udy,ub,ubx,uby,zeta,dzc,dzm,dzp,fc.DeltaT,MASK, ...
+                            Bmelt,Epmp,CTSm,CTSp,Hw,Ht,Dbw,Dfw,cnt);
+                    else
+                        [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
+                            ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                            udx,udy,ub,ubx,uby,zeta,gradxy,H,dzc,dzm,dzp, ...
+                            G,taudxy,A,fc.DeltaT,MASK,Bmelt,cnt);
+                        Bmelt=BasalMelting(ctr,par,G,taudxy,ub,H,tmp,dzm,MASK);
+                    end
                 end
             end
         end
@@ -492,7 +514,7 @@ for cnt=cnt0:ctr.nsteps
     else
         if ctr.subwaterflow>0
             Bmelt=zeros(ctr.imax,ctr.jmax)+1e-8;
-            Bmelt(MASK--0)=0;
+            Bmelt(MASK==0)=0;
         end
     end
 
@@ -568,8 +590,7 @@ for cnt=cnt0:ctr.nsteps
 % Define distance to open ocean for calving and sub-shelf melting
 %------------------------------------------------------------------
 
-    if ctr.glMASKexist==1 && (par.ArcOcean==1 || ctr.calving==1 || ...
-            ctr.calving==2) && ctr.basin==0
+    if ctr.glMASKexist==1 && par.ArcOcean==1 && ctr.basin==0
         if cntT==1
             [arcocn,~,~]=OceanArc(MASK,H,MASKlk,ctr,par);
             arcocn0=arcocn;
@@ -610,14 +631,15 @@ for cnt=cnt0:ctr.nsteps
 %---------------------------------------------------------------
 % Calving and hydrofracturing (after Pollard et al., 2015)
 % Melting at vertical face of calving front
+% Use of LSF function (implemented by Vio - 2024)
 %---------------------------------------------------------------
 
     if ctr.calving>=1 && ctr.shelf==1
-        [CMB,LSF,he]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, ...
-            uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho,bMASK,LSF,node,nodes,VM);
-        if ctr.calving<5
-            [FMB]=VerticalFaceMelt(ctr,par,SLR,B,Melt,MASK,glMASK,he);
-        end
+        [he,fi]=DefineEdgeThickness(ctr,par,glMASK,H); % Pollard 2015
+        [FMB,FMR]=VerticalFaceMelt(ctr,par,SLR,B,Melt,MASK,glMASK,he);
+        [CMB,LSF,CR]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx, ...
+            glMASK,H,A,uxssa,uyssa,arcocn,B,runoff,MASK,MASKo,Ho, ...
+            bMASK,LSF,node,nodes,VM,cnt,ux,uy,Melt,he,fi,FMR);
     end
 
 %---------------------------------------------------------
@@ -627,7 +649,7 @@ for cnt=cnt0:ctr.nsteps
 
     if ctr.diagnostic==0
         % sum of mass balance components for continuity equation
-        Massb=Mb-Bmelt-Melt-CMB-FMB;
+        Massb=Mb-Bmelt-Melt;
         if ctr.basin==1
             Massb(bMASK==1)=0; % only for ice thickness evolution
         end
@@ -637,12 +659,21 @@ for cnt=cnt0:ctr.nsteps
         if ctr.NumCheck==1
             NumStab(cnt,6:8)=[relresH,iterH,flagH];
         end
-        if ctr.calving>=5
-            % remove icebergs
+        if ctr.calving>=1 % remove icebergs
             Hn(LSF<0)=par.SeaIceThickness;
         end
         Hn(Hn<0)=0; % limit on minimal ice thickness
         dHdt(cnt)=mean(abs(Hn(:)-H(:)))/ctr.dt; % ice-sheet imbalance
+    end
+    % Ensure continuity of ice shelves during calving front advance/retreat
+    % Grid point indices that have now become calving front and used
+    % to be open sea. (DMP)
+    if ctr.glMASKexist==1
+        [row,col]=find((glMASK==5) & (glMASK0==6));
+        % Ensure continuity if for such points.
+        if ~isempty(row)
+%             [H,Hn]=IceShelfContinuity(ctr,row,col,H,Hn,glMASK);
+        end
     end
 
 %----------------------
@@ -663,23 +694,22 @@ for cnt=cnt0:ctr.nsteps
     if ctr.inverse>=1 && rem(cnt*ctr.dt,ctr.Tinv)==0 && cnt>1 && ...
             cnt<(1-ctr.stopoptim)*ctr.nsteps
         [As,deltaZ,Asor]=OptimizeIceSheet(ctr,par,cnt,Asor,MASK, ...
-            MASKo,bMASK,deltaZ,sn,sn0,r,ncor,B,stdB,vx,vy,ux,uy,invmax2D);
+            bMASK,deltaZ,sn,sn0,r,ncor,B,stdB,vx,vy,ux,uy,invmax2D);
     end
     % optimization of basal melt rates based on Bernales (2017)
     if ctr.inverse==2 && rem(cnt*ctr.dt,ctr.TinvMelt)==0
-        if ctr.GroundedMelt==1
-            [MeltInv]=OptimizeIceShelf(ctr,MASKo,glMASK,H,Ho,Melt,bMASK);
-        else
-            [MeltInv]=OptimizeIceShelf(ctr,MASK,glMASK,H,Ho,Melt,bMASK);
-        end
+        [MeltInv]=OptimizeIceShelf(ctr,MASK,glMASK,H,Ho,Melt,bMASK);
     end
     if ctr.inverse>=1
-        InvVol(cnt,1)=sum(abs(sn(MASK==1)-sn0(MASK==1)));
-        InvVol(cnt,2)=sum(sn(MASK==1)-sn0(MASK==1));
+        % calculates misfit for ice grid cells (and only within drainage
+        % basin if ctr.basin=1)
+        InvVol(cnt,1)=sum(abs(sn(MASK==1 & bMASK==0)-sn0(MASK==1 & bMASK==0)));
+        InvVol(cnt,2)=sum(sn(MASK==1 & bMASK==0)-sn0(MASK==1 & bMASK==0));
         if ctr.shelf==1
             InvVol(cnt,3)=mean(H(shMASK==1)-Ho(shMASK==1),'omitnan');
         end
     end
+
     
 %------------------------------------------------------
 % Volume above floatation, sea level contribution
@@ -721,17 +751,23 @@ for cnt=cnt0:ctr.nsteps
             sum(fluxmy(glMASK==2 & circshift(glMASK,[-1 0])>2))+ ...
             sum(-fluxmx(glMASK>2 & circshift(glMASK,[0 -1])==2))+ ...
             sum(-fluxmy(glMASK>2 & circshift(glMASK,[-1 0])==2));
+        cfflux(cnt)=sum(fluxmx(glMASK==5&circshift(glMASK,[0 -1])>5))+ ...
+            sum(fluxmy(glMASK==5&circshift(glMASK,[-1 0])>5))+ ...
+            sum(-fluxmx(glMASK>5&circshift(glMASK,[0 -1])==5))+ ...
+            sum(-fluxmy(glMASK>5&circshift(glMASK,[-1 0])==5));
     end
     if islogical(ZB)==0
         for i=1:max(ZB(:))
             IVg_basin(cnt,i)=sum(H(MASK==1 & H>0 & ZB==i))*ctr.delta^2;
             Ag_basin(cnt,i)=sum(sum(MASK==1 & H>0 & ZB==i))*ctr.delta^2;
             if ctr.shelf==1
-                IVf_basin(cnt,i)=(sum(sum(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
-                Af_basin(cnt,i)=(sum(H(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
+                Af_basin(cnt,i)=(sum(sum(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
+                IVf_basin(cnt,i)=(sum(H(MASK==0 & H>par.SeaIceThickness & ZB==i)))*ctr.delta^2;
             end
         end
     end
+    % Update glMASK to keep track of moving calving front (DMP)
+    glMASK0=glMASK;
 
 %------------------------------------
 % NaN check
@@ -764,7 +800,7 @@ for cnt=cnt0:ctr.nsteps
 %------------------------------------
 
     if ctr.runmode<2 && rem(cnt-1,plotst)==0
-        PlotMainFigure(ctr,par,x,y,sn,S0,H,u,B,MASK,glMASK,LSF);
+        PlotMainFigure(ctr,par,x,y,sn,S0,H,u,B,MASK,MASKo,glMASK,LSF);
     end
     
 %------------------------------------
@@ -777,9 +813,9 @@ for cnt=cnt0:ctr.nsteps
         if rem(cnt-1,plotst)==0 && cnt>1
             outputname=[outfile,'_toto'];
             save(outputname);
-            if ctr.runmode==5
-                MeltDown; break;
-            end
+        end
+        if ctr.runmode==5
+            MeltDown; break;
         end
     end
         
@@ -800,6 +836,9 @@ Mbend=Mb; % final values of Mb
 Tsend=Ts; % final values of Ts;
 Mb=Mb0; % reset output Mb to original value, since Mb=Mb-Melt-CMB
 Ts=Ts0; % reset output Ts
+To=To0; % reset output To
+So=So0; % reset output So
+
 
 save(outfile,'H','B','Ho','Bo','MASK','MASKo','As','G', ...
     'Ts','Mb');

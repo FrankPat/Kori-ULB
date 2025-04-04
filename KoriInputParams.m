@@ -5,7 +5,7 @@
 %                                                                       %
 % MIT License                                                           %
 %                                                                       %
-% Copyright (c) 2017-2023 Frank Pattyn                                  %
+% Copyright (c) 2017-2025 Frank Pattyn                                  %
 %                                                                       %
 % Permission is hereby granted, free of charge, to any person obtaining %
 % a copy of this software and associated documentation files (the       %
@@ -103,6 +103,8 @@ par.Toi=-1.7; % Ocean temperature for initialization
 par.SeaIceThickness=0.1;
 par.ArcOcean=0; % include Ocean Arc to control Melt and calving
 par.LatentMelt=(par.rhow*par.cp0)/(par.rho*par.Latent);
+par.f_coriolis=-1.4e-4;
+par.BetaS=7.86e-4 ; 
 
 %-----------------------------------
 % PICO and plume model parameters
@@ -146,6 +148,23 @@ par.beta_coeff_lazero = 7.86e-4; % psu-1 Haline contraction coefficient
 
 
 %-----------------------------------
+% Calving
+%-----------------------------------
+
+par.LSFReset=30;
+
+% PD12 calving scheme (ctr.calving=3)
+par.MinCalvThick=30;
+par.MaxCalvRate=3e5;
+
+% PD15 calving scheme (ctr.calving=4)
+par.MaxCalvRate=3000;
+par.CritCrevasse=0.75;
+par.Ucrit1=1600;
+par.Ucrit2=1900;
+
+
+%-----------------------------------
 % Isostasy
 %-----------------------------------
 
@@ -186,8 +205,10 @@ par.AsScale=1e5^(2-m);
 
 par.T0=273.15; % absolute temperature
 par.K=2.1; % thermal conductivity
-par.kdif=1.1487e-6; % kdif=K/(rho*cp), cp=2009; value of EISMINT
+par.cp=2009; % Heat capacity of ice
+par.kdif=par.K/(par.rho*par.cp); % Thermal diffusivity
 par.pmp=8.66e-4; % Clausius Clapeyron (Payne, 2000)
+% par.pmp=7.9e-8*par.rho*par.g; % value of 7.1e-4 which is lower than above
 par.atune=1; % tuning factor in Arrhenius (1 for n=3; 1e-5 for n=4)
 par.R=8.314; % gas constant
 par.udfrac=0.25;
@@ -197,6 +218,7 @@ par.Q1=78.2e3; % Arrhenius parameters from Ritz (1992)
 par.Q2=95.45e3;
 par.a1=1.66e-16;
 par.a2=2e-16;
+par.Tref=223.15; % Kleiner (2015); Rueckamp (2020)
 
 %-----------------------------------
 % PDD model parameters
