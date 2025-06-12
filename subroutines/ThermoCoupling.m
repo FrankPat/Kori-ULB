@@ -10,7 +10,7 @@ function [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm, ...
             exp(((Tbc<-6.5)*par.Q1+(Tbc>=-6.5)*par.Q2)./par.R.* ...
             (1./(par.T0-par.pmp*H)-1./(Tb+par.T0)));
         if wat
-            A=A.*(1+1.8125*min(wat(:,:,ctr.kmax),0.03)); % Adding effect of water content with enthalpy
+            A=A.*(1+181.25*min(wat(:,:,ctr.kmax),0.03)); % Adding effect of water content with enthalpy
         end
         [Ax,Ay,Ad]=StaggeredA(A);
     else

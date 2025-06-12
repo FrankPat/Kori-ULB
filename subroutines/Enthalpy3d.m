@@ -8,7 +8,7 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
 % 3d englacial enthalpy calculation in ice sheet and ice shelves
  
     % ice diffusivity
-    kdif=par.kdif*(1.+(1e-5-1.)*heaviside(E-Epmp));
+    kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp)); %OR
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]); 
     repH=max(repmat(H,[1,1,ctr.kmax]),1e-8);
     repH2=repmat(H,[1,1,ctr.kmax]);
@@ -160,7 +160,6 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     CTS=zeros(ctr.imax,ctr.jmax,ctr.kmax); CTSm=CTS; CTSp=CTS;
     % Temperate layer thickness
     Ht=zeros(ctr.imax,ctr.jmax);
-    Hx=zeros(ctr.imax,ctr.jmax);
 
     % only keep the first value for the CTS where the condition apply
     % --> assumption that only one CTS exists for a given ice column
@@ -204,10 +203,6 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
                          % Find if temperate conditions are present above the CTS while it should be cold
                          if k<idx && E(i,j,k)>Epmp(i,j,k)
                          E(i,j,k)=Epmp(i,j,k);
-                         end
-                         % Find anomaly in the enthalpy field in cold ice around the CTS
-                         if (k<(idx+5) && k>(idx-5)) && abs(E(i,j,k-1)-E(i,j,k))>=par.cp
-                            Hx(i,j)=1;
                          end
                     end
                 end
@@ -313,9 +308,8 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     % Enthalpy gradient at the base
     dEdz=(E(:,:,ctr.kmax)-E(:,:,ctr.kmax-1))./(max(H,1e-8).*dzm(:,:,ctr.kmax)); % [J kg-1 m-1]
     % Basal (non advective) Heat Flux
-    Qq = (par.K*dEdz/par.cp).*(Ptv==0) + (par.K*1e-5*dEdz/par.cp).*(Ptv==1);
-    % Basal melting (m/an)
-    % Aschwanden et al. (2012)
+    Qq = (par.K*dEdz/par.cp).*(Ptv==0) + (par.K0*dEdz).*(Ptv==1);
+    % Basal melting (m/a) based on Aschwanden et al. (2012)
     Bmelt=min(1,max(-1,((BasalHeat-Qq).*par.secperyear./((1-wat(:,:,ctr.kmax))*par.Latent*par.rho)))); 
     Bmelt(MASK~=1)=0;
     Bmelt(H==0)=0; 
