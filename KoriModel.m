@@ -845,6 +845,9 @@ save(outfile,'H','B','Ho','Bo','MASK','MASKo','As','G', ...
 if ctr.Tcalc>=1
     save(outfile,'tmp','Bmelt','-append');
 end
+if ctr.Enthalpy==1
+    save(outfile,'E','-append'); %OR
+end
 if ctr.inverse>0
     save(outfile,'Asor','-append');
 end
