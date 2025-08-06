@@ -1,6 +1,6 @@
 function [ctr,invmax2D,Asor,ncor,To,So,Pr0,Evp0,runoff0,Evp,Hinit]= ...
     ExistParams(ctr,par,ncor,Asor,stdB,v,uxssa,To,So,Db,B,MASK,As,Pr, ...
-    Evp,runoff,Mb0,Hinit,Ho)
+    Evp,runoff,Mb0,Hinit,Ho,damage)
 
 % Kori-ULB
 % Test what parameters and matrices exist and initializes them accordingly
@@ -38,6 +38,13 @@ function [ctr,invmax2D,Asor,ncor,To,So,Pr0,Evp0,runoff0,Evp,Hinit]= ...
         ctr.uSSAexist=0;
     else
         ctr.uSSAexist=1;
+    end
+    
+    % check whether damage field exists
+    if islogical(damage)==1
+        ctr.damexist=0;
+    else
+        ctr.damexist=1;
     end
     
     if islogical(To)==1

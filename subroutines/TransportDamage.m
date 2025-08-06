@@ -1,5 +1,5 @@
-function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
-    u,v,ctr,cnt,bMASK,VM,par)
+function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,ThinComp,H,MASK, ...
+    dtdx,dtdx2,u,v,ctr,cnt,bMASK,VM,par)
 
 % Kori-ULB
 % Sparse solver of damage transport (based on ice thickness solver)
@@ -19,7 +19,7 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
     if ctr.upstream==1
         % conditions for diffusion scheme (init)
         V0=zeros(ctr.imax,ctr.jmax)+8*epsilon*dtdx+(max(Mb,0)+ ...
-            max(Melt,0))*ctr.dt./max(H,1e-5); % i,j
+            max(Melt,0)-ThinComp)*ctr.dt./max(H,1e-5); % i,j
         V1=zeros(ctr.imax,ctr.jmax)-2*epsilon*dtdx; % i,j+1
         V2=V1; % i,j-1
         V3=V1; % i+1,j
@@ -90,7 +90,7 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
         V8=V8*dtdx2;
     else
         V0=8*epsilon*dtdx+dtdx2*(u-um1+v-vm1)+ ...
-            (max(Mb,0)+max(Melt,0))*ctr.dt./max(H,1e-5); % i,j
+            (max(Mb,0)+max(Melt,0)-ThinComp)*ctr.dt./max(H,1e-5); % i,j
         V1=-2*epsilon*dtdx+dtdx2*u; % i,j+1
         V2=-2*epsilon*dtdx-dtdx2*um1; % i,j-1
         V3=-2*epsilon*dtdx+dtdx2*v; % i+1,j
@@ -285,7 +285,7 @@ function [dtr]=TransportDamage(node,nodes,dtr,Mb,Melt,H,MASK,dtdx,dtdx2, ...
     end
 
     dtr(node>0)=s(node(node>0));
-    dtr=max(0,min(H-eps,dtr)); % FP: put limit on maximum dtr as 1/20 of ice thickness
+    dtr=max(0,min(H-epsilon,dtr)); % FP: put limit on maximum dtr as 1/20 of ice thickness
 
 end
 

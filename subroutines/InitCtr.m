@@ -26,6 +26,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.Tcalc(any(ismember(fields(ctr),'Tcalc'))==0)=0;
     ctr.Tinit(any(ismember(fields(ctr),'Tinit'))==0)=0;
     ctr.Enthalpy(any(ismember(fields(ctr),'Enthalpy'))==0)=0;
+    ctr.drain(any(ismember(fields(ctr),'drain'))==0)=1;
     ctr.BedAdj(any(ismember(fields(ctr),'BedAdj'))==0)=0;
     ctr.m(any(ismember(fields(ctr),'m'))==0)=default.m; % default linear sliding
     ctr.p(any(ismember(fields(ctr),'p'))==0)=0;
@@ -33,7 +34,6 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.subwaterflow(any(ismember(fields(ctr),'subwaterflow'))==0)=0;
     ctr.SlidAdjust(any(ismember(fields(ctr),'SlidAdjust'))==0)=0;
     ctr.calving(any(ismember(fields(ctr),'calving'))==0)=0;
-    ctr.CalveCirc(any(ismember(fields(ctr),'CalveCirc'))==0)=0;
     ctr.LimitFront(any(ismember(fields(ctr),'LimitFront'))==0)=0;
     ctr.FrontalMelt(any(ismember(fields(ctr),'FrontalMelt'))==0)=0;
     ctr.CR(any(ismember(fields(ctr),'CR'))==0)=0;
@@ -42,6 +42,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.GeoidCalc(any(ismember(fields(ctr),'GeoidCalc'))==0)=0;
     ctr.starttime(any(ismember(fields(ctr),'starttime'))==0)=0;
     ctr.NumCheck(any(ismember(fields(ctr),'NumCheck'))==0)=0;
+    ctr.shelfBC(any(ismember(fields(ctr),'shelfBC'))==0)=0;
     ctr.mismip(any(ismember(fields(ctr),'mismip'))==0)=0;
     ctr.basin(any(ismember(fields(ctr),'basin'))==0)=0;
     ctr.damage(any(ismember(fields(ctr),'damage'))==0)=0;
@@ -66,6 +67,17 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.ItSolv(any(ismember(fields(ctr),'ItSolv'))==0)=default.ItSolv;
     ctr.Asin(any(ismember(fields(ctr),'Asin'))==0)=default.Asin;
     ctr.taulim(any(ismember(fields(ctr),'taulim'))==0)=default.taulim;
+    ctr.TRdam(any(ismember(fields(ctr),'TRdam'))==0)=1;
+    ctr.THdam(any(ismember(fields(ctr),'THdam'))==0)=0;
+    if ctr.damage==1
+        ctr.SFdam(any(ismember(fields(ctr),'SFdam'))==0)=1;
+        ctr.BSdam(any(ismember(fields(ctr),'BSdam'))==0)=1;
+    else
+        ctr.SFdam(any(ismember(fields(ctr),'SFdam'))==0)=0;
+        ctr.BSdam(any(ismember(fields(ctr),'BSdam'))==0)=0;
+    end
+    ctr.tauice(any(ismember(fields(ctr),'tauice'))==0)=default.tauice;
+    ctr.OceanVisc(any(ismember(fields(ctr),'OceanVisc'))==0)=default.OceanVisc;
     if any(ismember(fields(ctr),'gammaT'))==0
         if ctr.meltfunc==1
             ctr.gammaT=default.gammaTlin;

@@ -1,11 +1,13 @@
 function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
-    glMASK,shelftune,ctr)
+    glMASK,shelftune,damage,ctr)
 
 % Kori-ULB
 % Effective viscosity of the SSA solution. On the borders of the domain, a
 % fixed value is determined based on a fixed ice thickness (Hshelf) that
 % determines eta1
 
+    eps=1e-8;
+    
     dudx=(uxssa-circshift(uxssa,[0 1]))/ctr.delta;
     dudx(:,1)=dudx(:,2);
     dudx(:,ctr.jmax)=dudx(:,ctr.jmax-1);
@@ -40,7 +42,9 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
     end
     EffStr=dudx.^2+dvdy.^2+dudx.*dvdy+0.25*(dudy+dvdx).^2;
     EffStr=max(EffStr,1e-12);
-    eta=0.5*H.*A.^(-1./par.n).*EffStr.^((1-par.n)/(2*par.n));
+    scale_eta=(H-min(min(H.*par.damlim,damage),H-eps))./(H+eps);
+    Astar=A.*scale_eta.^(-par.n);
+    eta=0.5*H.*Astar.^(-1./par.n).*EffStr.^((1-par.n)/(2*par.n));
     eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
     
     if ctr.shelf==1 || ctr.schoof>0
@@ -53,14 +57,13 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
             MASKb(1:ctr.imax-2,1:ctr.jmax-2)=0;
         end
         MASKb(MASK==1)=0;
-        % remove outliers (10%) - especially important for basins where
-        % grounded parts may exist on the domain boundary
         eta(MASKb==1)=trimmean(eta(MASKb==1),10);
         
         % Instead of calculating effective viscosity on the sea ice,
         % keep constant viscosity. Need to further check how to deal
         % with this. May be quoted
-        eta(glMASK==6)=1.0e7; % Default: 1.0e7. Daniel: 8.0e9
+        eta(glMASK==6)=ctr.OceanVisc; % Default: 1.0e7. Daniel: 8.0e9
+        % 1e8 is approx for ice shelf of 200m thick
     end
     
 end

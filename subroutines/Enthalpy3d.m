@@ -13,6 +13,11 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     repH=max(repmat(H,[1,1,ctr.kmax]),1e-8);
     repH2=repmat(H,[1,1,ctr.kmax]);
 
+    % Enthalpy at pressure melting point
+    Tp=par.pmp*repH2.*repz;
+    Tpmp=par.T0-Tp;
+    Epmp=par.cp*(Tpmp-par.Tref);
+
     % surface BC
     E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
     
@@ -155,53 +160,32 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         E(1,:,:)=E(3,:,:);
         E(end,:,:)=E(end-2,:,:);
     end
+        
+    %OR: function that calculate CTS position + temperate layer thickness
+    [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
     
-    % CTS position
-    CTS=zeros(ctr.imax,ctr.jmax,ctr.kmax); CTSm=CTS; CTSp=CTS;
-    % Temperate layer thickness
-    Ht=zeros(ctr.imax,ctr.jmax);
-
-    % only keep the first value for the CTS where the condition apply
-    % --> assumption that only one CTS exists for a given ice column
-    first_one = false(size(CTS, 1), size(CTS, 2));
-    second_one = false(size(CTS, 1), size(CTS, 2));
-
-    for k=ctr.kmax-1 :-1:2
-        CTSm(:,:,k)=E(:,:,k) >= Epmp(:,:,k) & E(:,:,k-1) < Epmp(:,:,k-1) & ~first_one; % first grid point where E>=Epmp
-        first_one = first_one | CTSm(:,:,k);
-        CTSp(:,:,k)=E(:,:,k) < Epmp(:,:,k) & E(:,:,k+1) >= Epmp(:,:,k+1) & ~second_one; % last grid point where E<Epmp
-        second_one = second_one | CTSp(:,:,k);
+    [idx_i,idx_j,idx_k]=ind2sub(size(CTSm), find(CTSm == 1));
+    idx=zeros(ctr.imax,ctr.jmax);
+    if ~isempty(idx_i)
+        lin_idx = sub2ind(size(idx), idx_i, idx_j);
+        idx(lin_idx) = idx_k;
     end
     for i=1:ctr.imax
         for j=1:ctr.jmax
             if MASK(i,j)>0 && H(i,j)>0
                 % Find index of the CTS
-                idx = find(CTSm(i,j,:)==1);
-                if E(i,j,ctr.kmax)>=Epmp(i,j,ctr.kmax) && E(i,j,ctr.kmax-1)>=Epmp(i,j,ctr.kmax-1)
-                    % temperate layer thickness & CTS
-                    if idx~=0 
-                        Ht(i,j) = H(i,j).*(1-zeta(idx)); 
-                    end
-                elseif E(i,j,ctr.kmax)>=Epmp(i,j,ctr.kmax) && E(i,j,ctr.kmax-1)<Epmp(i,j,ctr.kmax-1)
-                    CTSp(i,j,:)=0;
-                    CTSm(i,j,:)=0;
-                    Ht(i,j)=0;
-                    % Correction when CTS is at the bed-ice interface
-                    CTSm(i,j,ctr.kmax)=1;
-                    E(i,j,ctr.kmax)=Epmp(i,j,ctr.kmax);
-                else % no CTS if cold layer of ice above the bed
-                     CTSp(i,j,:)=0;
-                     CTSm(i,j,:)=0;
-                     Ht(i,j)=0;
-                end
+                % idx1 = find(E(i,j,:)<Epmp(i,j,:), 1, 'last'); % CTSp
+                % idx2 = find(E(i,j,:)>=Epmp(i,j,:), 1, 'first'); % CTSm
+%                 idx = find(CTSm(i,j,:)==1);
+
                 if Ht(i,j)>0  % positive thickness of temperate ice 
                     for k=2:ctr.kmax 
                          % Find if ice is cold below the CTS while it should be temperate
-                         if k>idx && E(i,j,k)<Epmp(i,j,k)
+                         if k>idx(i,j) && E(i,j,k)<Epmp(i,j,k)
                          E(i,j,k)=Epmp(i,j,k);
                          end
                          % Find if temperate conditions are present above the CTS while it should be cold
-                         if k<idx && E(i,j,k)>Epmp(i,j,k)
+                         if k<idx(i,j) && E(i,j,k)>Epmp(i,j,k)
                          E(i,j,k)=Epmp(i,j,k);
                          end
                     end
@@ -209,19 +193,135 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
             end
         end
     end
+    
     % Temperature field  
     Tp=par.pmp*repH2.*repz;
     Tpmp=par.T0-Tp;
     tmp=min((E/par.cp)+par.Tref,Tpmp);
     tmp(E>=Epmp)=Tpmp(E>=Epmp); % temperate ice
-    
-    % Enthalpy correction
-    Epmp=par.cp*(Tpmp-par.Tref);
 
     % Water Content 
     wat=max((E-Epmp)./par.Latent,0); % Aschwanden et al, 2012
     wat(E<Epmp)=0; % no water content in cold ice
     wat(tmp<Tpmp)=0; % avoid truncature errors with Epmp
+    
+    % ---------------------------------------------------------------------
+    % Recalculate enthalpy profiles in cold ice
+    % Keep prior enthalpy guess for temperate ice
+    % ENTM scheme in Greve & Blatter, 2015, 2016
+    % ---------------------------------------------------------------------
+
+    tmp0=tmp; % prior guess temperature
+    E0=E;     % prior guess enthalpy
+    
+    % ice diffusivity
+    kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp));
+    Kc=par.K./par.cp; kdif(E<Epmp)=Kc./par.rho;
+    kdif(E>=Epmp)=par.K0./par.rho;
+
+    % surface BC
+    E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
+    
+    % horizontal velocities on H grid
+    uxdt=0.5*(udx+circshift(udx,[0 1]));
+    uydt=0.5*(udy+circshift(udy,[1 0]));
+    uxbt=0.5*(ubx+circshift(ubx,[0 1])); 
+    uybt=0.5*(uby+circshift(uby,[1 0]));
+    pl=repmat(pxy,[1,1,ctr.kmax]);
+    zl=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
+    ushllib=(pl+2)./(pl+1).*(1-zl.^(pl+1));
+    ut=repmat(uxdt,[1,1,ctr.kmax]).*ushllib+repmat(uxbt,[1,1,ctr.kmax]);
+    vt=repmat(uydt,[1,1,ctr.kmax]).*ushllib+repmat(uybt,[1,1,ctr.kmax]);
+    
+    % horizontal advection
+    dEdxm=(circshift(E,[0 -1])-E)/ctr.delta;
+    dEdxp=(E-circshift(E,[0 1]))/ctr.delta;
+    advecx=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+    advecx(ut>0)=ut(ut>0).*dEdxp(ut>0)*dt;
+    advecx(ut<0)=ut(ut<0).*dEdxm(ut<0)*dt;
+    dEdym=(circshift(E,[-1 0])-E)/ctr.delta;
+    dEdyp=(E-circshift(E,[1 0]))/ctr.delta;
+    advecy=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+    advecy(vt>0)=vt(vt>0).*dEdyp(vt>0)*dt;
+    advecy(vt<0)=vt(vt<0).*dEdym(vt<0)*dt;
+    
+    % vertical velocity according to Pattyn (2010) with Lliboutry shape
+    % function
+    wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
+    w=repmat(-Mb,[1,1,ctr.kmax]).*wshllib-max(Bmelt,-5e-2)+ut.* ...
+        (repmat(gradsx,[1,1,ctr.kmax])-zl.*repmat(gradHx,[1,1,ctr.kmax])) ...
+        +vt.*(repmat(gradsy,[1,1,ctr.kmax])-zl.*repmat(gradHy,[1,1,ctr.kmax]));
+    
+    % Internal/strain heating [CHECK THIS BECAUSE CHANGED]
+    dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/(par.n+2),[1,1,ctr.kmax]).*repz.^pl; 
+    fric=par.rho.*par.g.*repmat(sqrt(gradxy),[1,1,ctr.kmax]).*repz.*dudz.*dt./par.rho;
+    repmask=repmat(MASK,[1,1,ctr.kmax]);
+    fric(repmask==0)=0; % no frictional heat in ice shelves
+    extraterm=max(min((fric-advecx-advecy-DFlux),5*par.cp),-5*par.cp);
+
+    % Temperature/Enthalpy solution
+    repH2=repmat(H,[1,1,ctr.kmax]); repH=max(repH2,1e-8);
+    % centred difference for diffusion & upstream difference for advection
+    atp=dt*((2*kdif*par.secperyear./(repH.^2.*dzm.*dzc))-w./(dzm.*repH)); % E(k-1)
+    btp=1+dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzm))-w./(dzm.*repH)); % E(k)
+    ctp=dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzc))); % E(k+1)
+
+    % basal BC at the CTS
+    ftp=ones(ctr.imax,ctr.jmax,ctr.kmax);
+    gtp=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+    gtp(CTSm==1)=Epmp(CTSm==1);
+    ftp(CTSm==1)=0;
+
+    for i=1:ctr.imax
+        for j=1:ctr.jmax
+
+            if Ht(i,j)>0  || CTSm(i,j,ctr.kmax)==1 % base is temperate
+            % Find index of the CTS
+            % idx=find(E(i,j,:)<Epmp(i,j,:), 1, 'last');
+            % idx=find(E(i,j,:)>=Epmp(i,j,:), 1, 'first');
+%             idx = find(CTSm(i,j,:)==1);
+
+            % Temperature/Enthalpy solution
+            for k=ctr.kmax-1:-1:2
+                if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % for cold ice above the CTS only
+                ftp(i,j,k)=atp(i,j,k)./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
+                gtp(i,j,k)=(E(i,j,k)+extraterm(i,j,k)+ ...
+                    ctp(i,j,k).*gtp(i,j,k+1))./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
+                end
+            end
+
+            for k=2:ctr.kmax
+                if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % update in cold ice above the CTS
+                E(i,j,k)=E(i,j,k-1).*ftp(i,j,k)+gtp(i,j,k);
+                tmp(i,j,k)=(E(i,j,k)./par.cp)+par.Tref;
+                wat(i,j,k)=0;
+                elseif CTSm(i,j,k)==1 % impose conditions at the CTS
+                E(i,j,k)=Epmp(i,j,k);
+                tmp(i,j,k)=Tpmp(i,j,k);
+                wat(i,j,k)=0;
+                else  %  use prior guess in temperate ice
+                E(i,j,k)=E0(i,j,k);
+                tmp(i,j,k)=tmp0(i,j,k); 
+                wat(i,j,:)=max((E0(i,j,:)-Epmp(i,j,:))./par.Latent,0);
+                end
+                
+                % Find if ice is cold below the CTS while it should be temperate
+                if k>idx(i,j) && E(i,j,k)<Epmp(i,j,k)
+                E(i,j,k)=Epmp(i,j,k);
+                end
+                % Find if water is present above the CTS while it should be cold
+                if k<idx(i,j) && E(i,j,k)>Epmp(i,j,k)
+                E(i,j,k)=Epmp(i,j,k);
+                wat(i,j,k)=0;
+                end
+            end
+            else % cold ice column
+               E(i,j,:)=E0(i,j,:);
+               tmp(i,j,:)=tmp0(i,j,:);
+               wat(i,j,:)=0;
+            end
+        end
+    end    
     
     % Correction for unstable temperature profiles
     % find an anomaly where temperature decreases with depth

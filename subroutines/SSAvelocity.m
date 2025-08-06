@@ -8,7 +8,6 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
 % Kori-ULB
 % Iterative solution to the SSA velocity (both pure SSA and hybrid model
 
-    eps=1e-8;
     taudx=par.rho*par.g*Hmx.*sqrt(gradmx).*signx;
     taudy=par.rho*par.g*Hmy.*sqrt(gradmy).*signy;
     if ctr.uSSAexist==1 || cnt>1
@@ -55,19 +54,48 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
         udx=zeros(ctr.imax,ctr.jmax);
         udy=zeros(ctr.imax,ctr.jmax);
     end
-    if ctr.damage==1 && cnt>1
-        dtr=TransportDamage(node,nodes,damage,Mb,Melt,H,glMASK,dtdx,dtdx2, ...
-            uxssa,uyssa,ctr,cnt,bMASK,VM,par);
-        damage=dtr;
-    end
     for ll=1:par.visciter % iteration over effective viscosity
         [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
-            glMASK,shelftune,ctr);
-        if ctr.damage==1 && cnt>1
+            glMASK,shelftune,damage,ctr);
+        if ctr.damage==1 && (ctr.damexist==1 || cnt>1)
             if ll==1
-                damage=NyeDamage(par,ctr,dudx,dvdy,dudy,dvdx,eta,H,HAF,MASK);
-                damage=min(par.damlim*H,max(damage,dtr));
-                scale_eta=(H-min(damage,H-eps))./(H+eps);
+                dtr=zeros(ctr.imax,ctr.jmax);
+                ThinComp=zeros(ctr.imax,ctr.jmax);
+                if ctr.TRdam==1
+                    % compute advected damage field from previous timestep (dtr)
+                    if ctr.THdam==1 
+                        % Thinning component (very sensitive)
+                        ThinComp=ThinningComponent(ctr,par,dudx,dvdy, ...
+                            dudy,dvdx,eta,H,damage,bMASK,glMASK);
+                    end
+                    SuM=Mb; BoM=Melt;
+                    if ctr.SFdam==0
+                        SuM=SuM*0;
+                    end
+                    if ctr.BSdam==0
+                        BoM=BoM*0;
+                    end
+                    dtr=TransportDamage(node,nodes,damage,SuM, ...
+                        BoM,ThinComp,H,glMASK,dtdx,dtdx2, ...
+                        uxssa,uyssa,ctr,cnt,bMASK,VM,par);
+                end
+                % compute surface damage
+                ds=SurfaceDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H);
+                % compute basal damage (and Kachuck term, necessary for transport)
+                db=BasalDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF);
+                dloc=max(0,min(db+ds,H.*par.damlim)); % local damage
+                % final damage field taken as the maximum of dloc and dtr
+                % allows for adverction of damage into regions that
+                % would not initiate damage total damage is limited to damlim
+                damage=min(H.*par.damlim,max(dloc,dtr));
+                % ensure no damage in the open ocean
+                damage(glMASK==6)=0;
+                if ctr.basin==1
+                    % ensure no outise of basin boundary
+                    damage(bMASK==1)=0;
+                end
+                % scaling of viscosity
+                scale_eta=1;
             end
         else
             scale_eta=1;
@@ -76,7 +104,7 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
         eta=eta.*scale_eta;
         
         [uxs1,uys1,su,flagU,relresU,iterU]=SparseSolverSSA(nodeu,nodev, ...
-            su,MASKmx,MASKmy,bMASK, ...
+            su,MASKmx,MASKmy,bMASK,glMASK, ...
             H,eta,betax,betay,uxssa,uyssa,uxsia,uysia,udx,udy,taudx, ...
             taudy,ctr,par);
         duxs=sqrt((uxs1-uxssa).^2+(uys1-uyssa).^2);

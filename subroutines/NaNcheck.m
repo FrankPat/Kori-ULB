@@ -34,3 +34,5 @@ function [flag]=NaNcheck(flag,H,ux,uy)
     end
 
 end
+
+
