@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                 Kori-ULB: The ULB ice flow model                      %
 %                                                                       %
-%                      Version 0.92 March 2025                          %
+%                     Version 0.92 August 2025                          %
 %                                                                       %
 %                           Frank Pattyn                                %
 %                    Laboratoire de Glaciologie                         %
@@ -103,7 +103,7 @@
 %                   VERSION history                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% v0.92 (03/2025)
+% v0.92 (08/2025)
 %
 %------------------------------------------------------------------------
 
@@ -184,7 +184,7 @@ slicecount=0;
 
 [Asor,stdB,v,vx,vy,tmp,Db,To,So,Tb,uxssa,uyssa,deltaZ,arcocn,arcocn0, ...
     E,wat,Epmp,Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit,ZB, ...
-    flagHu,frb,kei,Ll]=deal(false);
+    flagHu,frb,kei,Ll,damage]=deal(false);
 
 %---------------------
 % Initialization
@@ -195,7 +195,7 @@ slicecount=0;
     MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
     cfflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
     CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
-    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,damage,shelftune]= ...
+    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,shelftune]= ...
     InitMatrices(ctr,par,default,fc);
 
 %----------------------------------------------------------------------
@@ -235,7 +235,7 @@ end
 
 [ctr,invmax2D,Asor,ncor,To,So,Pr0,Evp0,runoff0,Evp,Hinit]= ...
     ExistParams(ctr,par,ncor,Asor,stdB,v,uxssa,To,So,Db,B,MASK,As, ...
-    Pr,Evp,runoff,Mb0,Hinit,Ho);
+    Pr,Evp,runoff,Mb0,Hinit,Ho,damage);
 
 %-------------------------------------
 % Define grounded/floating ice sheet
@@ -272,7 +272,7 @@ So0=So;
 
 cntT=0;
 if ctr.Tcalc>=1
-    [tmp,Tb,zeta,dzc,dzp,dzm,E,Epmp,wat]=InitTempParams(ctr,par,tmp,Ts,H,E,wat);
+    [tmp,Tb,zeta,dzc,dzp,dzm,E,Epmp]=InitTempParams(ctr,par,tmp,Ts,H,E);
     if ctr.Enthalpy==1
         CTSm=zeros(size(tmp));
         CTSp=zeros(size(tmp));
@@ -280,6 +280,10 @@ if ctr.Tcalc>=1
         Hw=zeros(size(Tb));
         Dbw=zeros(size(Tb));
         Dfw=zeros(size(E));
+        if ctr.Tinit==0
+            Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*par.intT,par.Wmax));
+            [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
+        end
     end
 end
 
@@ -485,14 +489,23 @@ for cnt=cnt0:ctr.nsteps
                     MASK,fc.DeltaT(cnt));
             end
             if ctr.Tinit<2
-                if ctr.shelf==1 && ctr.SSA>=1 && cnt>1
-                    [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-                        ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
-                        udx,udy,vec2h(uxssa,uyssa),uxssa,uyssa,zeta, ...
-                        gradxy,H,dzc,dzm,dzp,G,taudxy, ...
-                        A,fc.DeltaT,MASK,Bmelt,cnt);
-                    Bmelt=BasalMelting(ctr,par,G,taudxy, ...
-                        vec2h(uxssa,uyssa),H,tmp,dzm,MASK);
+%                 if ctr.shelf==1 && ctr.SSA>=1 && cnt>1
+                if ctr.SSA>=1 && (ctr.uSSAexist==1 || cnt>1)
+                    if ctr.Enthalpy==1
+                        [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
+                            Enthalpy3d(par,ctr,E,Mb,Ts,G,A,H, ...
+                            pxy,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy,gradxy,taudxy, ...
+                            udx,udy,vec2h(uxssa,uyssa),uxssa,uyssa,zeta,dzc,dzm,dzp, ...
+                            fc.DeltaT,MASK,Bmelt,Epmp,CTSm,CTSp,Hw,Ht,Dbw,Dfw,cnt);
+                    else
+                        [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
+                            ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                            udx,udy,vec2h(uxssa,uyssa),uxssa,uyssa,zeta, ...
+                            gradxy,H,dzc,dzm,dzp,G,taudxy, ...
+                            A,fc.DeltaT,MASK,Bmelt,cnt);
+                        Bmelt=BasalMelting(ctr,par,G,taudxy, ...
+                            vec2h(uxssa,uyssa),H,tmp,dzm,MASK);
+                    end
                 else
                     if ctr.Enthalpy==1
                         [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
@@ -522,6 +535,11 @@ for cnt=cnt0:ctr.nsteps
 % Subglacial water flow
 %-------------------------------------
     if ctr.subwaterflow==1 || ctr.subwaterflow==3
+        if ctr.Enthalpy>0
+            % OR2025: account for englacial drained water and correction for
+            % refreezing (the algorithm fails when Bmelt<0)
+            Bmelt=min(1e-8,Bmelt+Dbw); 
+        end
         if cntT==1
             [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,Bmelt);
             Wd0=Wd;
@@ -868,6 +886,9 @@ if islogical(lat)==0
 end
 if ctr.SSA>=1
     save(outfile,'uxssa','uyssa','-append');
+end
+if ctr.damage>=1
+    save(outfile,'damage','-append');
 end
 if islogical(Btau)==0
     save(outfile,'Btau','-append');
