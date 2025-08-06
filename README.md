@@ -1,6 +1,8 @@
 # Kori-ULB
 **Kori-ULB ice flow model**
 
+NOTE: This version is the version under development. Stable versions are available as a release.
+
 ![KoriTransparent](https://github.com/FrankPat/Kori-dev/assets/62480664/039cc0b4-914a-4698-8fe2-62663d3f0a0b)
 
 **Features**
@@ -44,8 +46,6 @@ or
 
 KoriModel(infile,outfile,ctr,fc)
 
-
-NOET: This version is the version under development. Stable versions are available as a release.
 
 
 **Model input**
