@@ -11,7 +11,7 @@
 
 -SIA diffusive calculation (on Arakawa B-grid)
 
--3D temperature field
+-3D temperature adn enthalpy field
 
 -Full thermomechanical coupling
 
