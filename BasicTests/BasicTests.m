@@ -464,13 +464,13 @@ ctr.imax=23; % need number of cells + 2
 ctr.jmax=352; % need number of cells + 1
 ctr.m=3;
 ctr.dt=1;
-ctr.nsteps=8001;
+ctr.nsteps=10001;
 ctr.mismip=1; % indicates that BCs need to be applied
 ctr.SSA=1;
 ctr.shelf=1;
 ctr.Ao=4e-17; % 4.0e-17
 ctr.shelftune=1;
-ctr.Asin=zeros(ctr.imax,ctr.jmax)+1e-6; % 1e-5
+ctr.Asin=zeros(ctr.imax,ctr.jmax)+1e-7; % 1e-5
 
 Li=(ctr.imax-2)*ctr.delta;
 Lj=(ctr.jmax-2)*ctr.delta;
@@ -484,9 +484,20 @@ H=zeros(ctr.imax,ctr.jmax)+10;
 Mb=zeros(ctr.imax,ctr.jmax)+0.3;
 Ts=zeros(ctr.imax,ctr.jmax)-5.0;
 save('MismipPlusIn','B','H','Mb','Ts');
-ctr.shelfBC=1;
 
-KoriModel('MismipPlusIn','MismipPlus1',ctr);
+% KoriModel('MismipPlusIn','MismipPlus1',ctr);
+
+% Damage experiment
+
+ctr.damage=1;
+ctr.SFdam=1;
+ctr.BSdam=1;
+ctr.THdam=0;
+ctr.tauice=1e-8;
+
+ctr.dt=0.05;
+ctr.nsteps=2001;
+KoriModel('MismipPlus1','MismipDamage',ctr);
 
 % Ice1rr experiment for 200 year with melting
 
@@ -517,13 +528,13 @@ ctr.imax=23; % need number of cells + 2
 ctr.jmax=352; % need number of cells + 1
 ctr.m=3;
 ctr.dt=1;
-ctr.nsteps=8001;
+ctr.nsteps=10001;
 ctr.mismip=1; % indicates that BCs need to be applied
 ctr.SSA=1;
 ctr.shelf=1;
 ctr.Ao=4e-17; % 4.0e-17
 ctr.shelftune=1;
-ctr.Asin=zeros(ctr.imax,ctr.jmax)+1e-6; % 1e-5
+ctr.Asin=zeros(ctr.imax,ctr.jmax)+1e-7; % 1e-5
 
 Li=(ctr.imax-2)*ctr.delta;
 Lj=(ctr.jmax-2)*ctr.delta;
@@ -552,7 +563,7 @@ save('MismipPlus1a','H','LSF','-append');
 ctr.nsteps=2001;
 ctr.calving=2;
 ctr.WV=0;
-% ctr.shelfBC=1;
+ctr.shelfBC=1;
 KoriModel('MismipPlus1a','MismipPlus1b',ctr);
 
 load MismipPlus1b;
