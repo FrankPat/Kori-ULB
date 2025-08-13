@@ -95,6 +95,8 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.gammaTplume(any(ismember(fields(ctr),'gammaTplume'))==0)=default.gammaTplume;
     ctr.M0(any(ismember(fields(ctr),'M0'))==0)=default.M0picop;
     ctr.Hcrit(any(ismember(fields(ctr),'Hcrit'))==0)=default.Hcrit;
+    ctr.YearlyMeans(any(ismember(fields(ctr),'YearlyMeans'))==0)=0;
+    ctr.SnapList(any(ismember(fields(ctr),'SnapList'))==0)=0;
     
     if any(ismember(fields(fc),'DeltaT'))==0
         fc.DeltaT=zeros(ctr.nsteps,1);

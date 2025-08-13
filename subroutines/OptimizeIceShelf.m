@@ -9,7 +9,11 @@ function [Melt]=OptimizeIceShelf(ctr,MASKo,glMASK,H,Ho,Melt,bMASK)
     % smaller limit as Bernales (changes of Melt were too big for limit 
     % 1.5 --> created holes in Ross)
     Melt(MASKo==1)=0; % No Melt for grounded grid cells
-    Melt=min(250,max(-100,Melt)); % limit melt
+    if ctr.basin==1 
+        Melt=min(200,max(-100,Melt)); % higher upper limit at regional scale
+    else
+        Melt=min(100,max(-100,Melt)); 
+    end
     Melt(glMASK==6)=0;
     if ctr.basin==1
         Melt(bMASK==1)=0;

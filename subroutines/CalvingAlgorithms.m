@@ -28,7 +28,6 @@ function [CMB,LSF,CR]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
         end
 
         if ctr.calving==2 % Direct, constant imposition of change in front positon. **ctr.WV=0 will fix calving front position to be unmoving**
-            MAGV=sqrt((0.5*(ux+ux1)).^2+(0.5*(uy+uy1)).^2);
             CR=MAGV-ctr.WV;
         end
 
@@ -97,14 +96,12 @@ function [CMB,LSF,CR]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
 
         if ctr.calving==7 % CalvMip Periodic forcing, ctr.CR_AMP is max rate of front position change
             Wv=-ctr.CR_AMP*sind(cnt*360/ctr.nsteps);
-            MAGV=sqrt(ux.^2+uy.^2);
             CR=MAGV-Wv;
         end
 
         if ctr.calving==8 %CalvMip Periodic forcing, ctr.CR_AMP is max rate of front position change
             if cnt <10000
                 Wv=-ctr.CR_AMP*sind(cnt*360/ctr.nsteps);
-                MAGV=sqrt(ux.^2+uy.^2);
                 CR=MAGV-Wv;
             else
                 CR=zeros(size(LSF));
@@ -112,10 +109,13 @@ function [CMB,LSF,CR]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
         end
 
         if ctr.LimitFront==1
-            CR(CR<MAGV & (MASKo==3 & circshift(MASKo,[-1 0])==0 | MASKo==3 & circshift(MASKo,[1 0])==0 ...
-                | MASKo==3 & circshift(MASKo,[0 -1])==0 | MASKo==3 & circshift(MASKo,[0 1])==0)) ...
-                =MAGV(CR<MAGV & (MASKo==3 & circshift(MASKo,[-1 0])==0 | MASKo==3 & circshift(MASKo,[1 0])==0 ...
-                | MASKo==3 & circshift(MASKo,[0 -1])==0 | MASKo==3 & circshift(MASKo,[0 1])==0));
+            CR(CR<MAGV & (MASKo==3 & circshift(MASKo,[-1 0])==0 | ...
+                MASKo==3 & circshift(MASKo,[1 0])==0 | MASKo==3 & ...
+                circshift(MASKo,[0 -1])==0 | MASKo==3 & ...
+                circshift(MASKo,[0 1])==0))=MAGV(CR<MAGV & (MASKo==3 & ...
+                circshift(MASKo,[-1 0])==0 | MASKo==3 & circshift(MASKo,[1 0])==0 ...
+                | MASKo==3 & circshift(MASKo,[0 -1])==0 | MASKo==3 & ...
+                circshift(MASKo,[0 1])==0));
         end
 
         if ctr.calving==4 || ctr.calving==6
