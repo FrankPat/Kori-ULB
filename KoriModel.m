@@ -184,7 +184,7 @@ slicecount=0;
 
 [Asor,stdB,v,vx,vy,tmp,Db,To,So,Tb,uxssa,uyssa,deltaZ,arcocn,arcocn0, ...
     E,wat,Epmp,Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit,ZB, ...
-    flagHu,frb,kei,Ll,damage]=deal(false);
+    flagHu,frb,kei,Ll,damage,CR,FMR,fluxmx,fluxmy]=deal(false);
 
 %---------------------
 % Initialization
@@ -283,6 +283,7 @@ if ctr.Tcalc>=1
         Dfw=zeros(size(E));
         if ctr.Tinit==0
             Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*par.intT,par.Wmax));
+            wat=(E-Epmp)/par.Latent;
             [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
         end
     end
