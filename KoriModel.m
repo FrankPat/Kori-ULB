@@ -194,8 +194,10 @@ slicecount=0;
     Mb_update,Li,Lj,dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo,glMASK0, ...
     MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
     cfflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
-    CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
-    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,shelftune]= ...
+    Dbw,CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
+    TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,shelftune,Melt_mean, ... 
+    Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean,CR_mean,FMR_mean, ...
+    fluxmx_mean,fluxmy_mean,Smelt_mean,runoff_mean,rain_mean,acc_mean]= ...
     InitMatrices(ctr,par,default,fc);
 
 %----------------------------------------------------------------------
@@ -278,7 +280,6 @@ if ctr.Tcalc>=1
         CTSp=zeros(size(tmp));
         Ht=zeros(size(Tb));
         Hw=zeros(size(Tb));
-        Dbw=zeros(size(Tb));
         Dfw=zeros(size(E));
         if ctr.Tinit==0
             Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*par.intT,par.Wmax));
@@ -535,13 +536,8 @@ for cnt=cnt0:ctr.nsteps
 % Subglacial water flow
 %-------------------------------------
     if ctr.subwaterflow==1 || ctr.subwaterflow==3
-        if ctr.Enthalpy>0
-            % OR2025: account for englacial drained water and correction for
-            % refreezing (the algorithm fails when Bmelt<0)
-            Bmelt=min(1e-8,Bmelt+Dbw); 
-        end
         if cntT==1
-            [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,Bmelt);
+            [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,min(1e-8,Bmelt+Dbw));
             Wd0=Wd;
         else
             if ctr.inverse==0
@@ -690,7 +686,7 @@ for cnt=cnt0:ctr.nsteps
         [row,col]=find((glMASK==5) & (glMASK0==6));
         % Ensure continuity if for such points.
         if ~isempty(row)
-%             [H,Hn]=IceShelfContinuity(ctr,row,col,H,Hn,glMASK);
+            [H,Hn]=IceShelfContinuity(ctr,row,col,H,Hn,glMASK);
         end
     end
 
@@ -711,7 +707,7 @@ for cnt=cnt0:ctr.nsteps
 
     if ctr.inverse>=1 && rem(cnt*ctr.dt,ctr.Tinv)==0 && cnt>1 && ...
             cnt<(1-ctr.stopoptim)*ctr.nsteps
-        [As,deltaZ,Asor]=OptimizeIceSheet(ctr,par,cnt,Asor,MASK, ...
+        [As,deltaZ,Asor]=OptimizeIceSheet(ctr,par,cnt,Asor,MASK,MASKo, ...
             bMASK,deltaZ,sn,sn0,r,ncor,B,stdB,vx,vy,ux,uy,invmax2D);
     end
     % optimization of basal melt rates based on Bernales (2017)
@@ -804,13 +800,35 @@ for cnt=cnt0:ctr.nsteps
 %------------------------------------
 % Save time-dependent matrices
 %------------------------------------
-    if ctr.timeslice==1 && rem(cnt-1,plotst)==0
-        slicecount=slicecount+1;
-        fname=strcat(outfile,'_',num2str(slicecount-1,'%03i'));
-        save(fname,par.varlist{1,1});
-        for i=2:length(par.varlist)
-            save(fname,par.varlist{1,i},'-append');
+    if ctr.YearlyMeans==1 && cnt==1
+        [Melt_mean,Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean, ...
+            CR_mean,FMR_mean,fluxmx_mean,fluxmy_mean,Smelt_mean, ...
+            runoff_mean,rain_mean,acc_mean]=InitYearlyMeans(Melt, ...
+            Bmelt,Ts,Mb,To,So,TF,CR,FMR,fluxmx,fluxmy,Smelt,runoff,rain,acc);
+    end
+    if ctr.timeslice==1 
+        if cnt==1 || (ctr.SnapList==1 && fc.snap_year(slicecount)==time(cnt)) ...
+                || (ctr.SnapList==0 && rem(cnt-1,plotst)==0)
+            slicecount=slicecount+1;
+            fname=strcat(outfile,'_',num2str(slicecount-1,'%03i'));
+            save(fname,par.varlist{1,1});
+            for i=2:length(par.varlist)
+                save(fname,par.varlist{1,i},'-append');
+            end
+            if (cnt>1 && ctr.SnapList==1 && ...
+                    fc.snap_year(slicecount-1)==fc.snap_year(end))
+                slicecount=length(fc.snap_year);
+            end
         end
+    end
+    if ctr.YearlyMeans==1
+        [Melt_mean,Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean, ...
+            CR_mean,FMR_mean,fluxmx_mean,fluxmy_mean,Smelt_mean, ...
+            runoff_mean,rain_mean,acc_mean]=YearlyMeans(Melt, ...
+            Bmelt,Ts,Mb,To,So,TF,CR,FMR,fluxmx,fluxmy,Smelt,runoff, ...
+            rain,acc,cnt,ctr,Melt_mean,Bmelt_mean,Ts_mean,Mb_mean, ...
+            To_mean,So_mean,TF_mean,CR_mean,FMR_mean,fluxmx_mean, ...
+            fluxmy_mean,Smelt_mean,runoff_mean,rain_mean,acc_mean);
     end
     
 %------------------------------------
