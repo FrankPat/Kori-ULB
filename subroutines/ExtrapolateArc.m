@@ -1,5 +1,6 @@
 function Arc=ExtrapolateArc(MASK,oldMASK,Arc,Arc0,ctr)
 
+% Kori-ULB
 % Extrapolate Arc between consecutive calls (to reduce
 % calculation speed)
 

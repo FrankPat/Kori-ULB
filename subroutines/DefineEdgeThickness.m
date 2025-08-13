@@ -1,5 +1,6 @@
 function [he,fi]=DefineEdgeThickness(ctr,par,glMASK,H)  %VL: add par
     
+% Kori-ULB
 % Define ice thickness at the shelf edges used for calving.
 % Based on Pollard et al (2015) and Pollard and DeConto (2012)
 % Use of maximum thickness of surrounding points and not mean H

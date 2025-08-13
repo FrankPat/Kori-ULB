@@ -1,6 +1,9 @@
 function mbcomp=BasinFlux(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
     H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,mbcomp,B,Bn,SLR,ZB)
 
+% Kori-ULB
+% Mass balance components per basin
+
     % (1) surface mass balance
     % (2) dhdt
     % (3) accumulation
@@ -82,4 +85,5 @@ function mbcomp=BasinFlux(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
     % convert all components to Gt/a (water equivalent)
     mbcomp=mbcomp*ctr.delta^2*par.rho/1e12;
 end
+
 

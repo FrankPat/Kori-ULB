@@ -1,6 +1,7 @@
 function Wd=ExtrapolateWaterFlux(MASK,oldMASK,Wd,Wd0,ctr,par)
 
-% Interpolate Wd between consecutive calls (to improve
+% Kori-ULB
+% Interpolate/extrapolate Wd between consecutive calls (to improve
 % calculation speed)
 
     dMASK=MASK-oldMASK; % difference between two consecutive

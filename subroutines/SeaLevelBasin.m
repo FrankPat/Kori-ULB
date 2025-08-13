@@ -1,5 +1,8 @@
 function [VAF_basin,SLC_basin]=SeaLevelBasin(ctr,par,SLR,B,H,H0,VAF0,POV0,ZB)
 
+% Kori-ULB
+% Sea level contribution per basin
+
     for i=1:max(ZB(:))
         VAFi=max(0,H+min(B-SLR,0)*(par.rhow/par.rho));
         % VAF variation (SL equivalent in ocean water)
@@ -18,3 +21,5 @@ function [VAF_basin,SLC_basin]=SeaLevelBasin(ctr,par,SLR,B,H,H0,VAF0,POV0,ZB)
     end
 
 end
+
+

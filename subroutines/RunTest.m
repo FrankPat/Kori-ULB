@@ -1,5 +1,9 @@
 function [ctr,outfile]=RunTest(ctr)
 
+% Kori-ULB
+% Basic test of EISMINT that runs when KoriModel is called without
+% arguments
+
     ctr.imax=31;
     ctr.jmax=31;
     ctr.delta=50.e3;
@@ -10,4 +14,5 @@ function [ctr,outfile]=RunTest(ctr)
     outfile='KoriModelTest';
     
 end
-    
+
+
