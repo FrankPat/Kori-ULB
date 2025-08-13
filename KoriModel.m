@@ -490,7 +490,6 @@ for cnt=cnt0:ctr.nsteps
                     MASK,fc.DeltaT(cnt));
             end
             if ctr.Tinit<2
-%                 if ctr.shelf==1 && ctr.SSA>=1 && cnt>1
                 if ctr.SSA>=1 && (ctr.uSSAexist==1 || cnt>1)
                     if ctr.Enthalpy==1
                         [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
