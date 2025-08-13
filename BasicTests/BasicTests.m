@@ -485,7 +485,7 @@ Mb=zeros(ctr.imax,ctr.jmax)+0.3;
 Ts=zeros(ctr.imax,ctr.jmax)-5.0;
 save('MismipPlusIn','B','H','Mb','Ts');
 
-% KoriModel('MismipPlusIn','MismipPlus1',ctr);
+KoriModel('MismipPlusIn','MismipPlus1',ctr);
 
 % Damage experiment
 
@@ -505,13 +505,13 @@ ctr.nsteps=201;
 ctr.meltfunc=10;
 ctr.meltfac=1;
 ctr.BetaIter=ctr.nsteps;
-% KoriModel('MismipPlus1','MismipPlus2',ctr);
+KoriModel('MismipPlus1','MismipPlus2',ctr);
 
 % Ice1ra experiment starting from Ice1r without melt
 
 ctr.nsteps=101;
 ctr.meltfunc=0;
-% KoriModel('MismipPlus2','MismipPlus3',ctr);
+KoriModel('MismipPlus2','MismipPlus3',ctr);
 
 end
 
@@ -701,6 +701,7 @@ ctr.Tinit=1;
 ctr.Tcalc=2;
 ctr.basin=1;
 ctr.inverse=1;
+ctr.enthalpy=1;
 
 if n==1
     KoriModel('ASE3km','ASEint1',ctr);
@@ -711,16 +712,15 @@ end
 
 ctr.inverse=2;
 ctr.meltfunc=1;
-% ctr.GroundedMelt=1; % better for basins!
 ctr.shelf=1;
 ctr.SSA=2;
 ctr.Tinit=0; % SET 1 FOR INITIALIZATION !
 ctr.Tinv=10;
 ctr.nsteps=101;
 ctr.dt=0.2;
-% ctr.shelfBC=1;
 ctr.Hcrit=300;
 ctr.damage=1;
+% ctr.shelfBC=1;
 if n==2
     KoriModel('ASEint1','ASEint2',ctr);
 end
