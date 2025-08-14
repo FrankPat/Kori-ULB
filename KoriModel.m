@@ -537,7 +537,7 @@ for cnt=cnt0:ctr.nsteps
 %-------------------------------------
     if ctr.subwaterflow==1 || ctr.subwaterflow==3
         if cntT==1
-            [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,min(1e-8,Bmelt+Dbw));
+            [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,max(1e-8,Bmelt+Dbw));
             Wd0=Wd;
         else
             if ctr.inverse==0
@@ -957,5 +957,6 @@ if ctr.runmode<2
 end
 
 end
+
 
 
