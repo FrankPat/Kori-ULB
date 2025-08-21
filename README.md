@@ -13,7 +13,7 @@ NOTE: This version is the version under development. Stable versions are availab
 
 -SIA diffusive calculation (on Arakawa B-grid)
 
--3D temperature adn enthalpy field
+-3D temperature and enthalpy field
 
 -Full thermomechanical coupling
 
