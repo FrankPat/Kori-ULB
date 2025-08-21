@@ -8,7 +8,7 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
 % 3d englacial enthalpy calculation in ice sheet and ice shelves
  
     % ice diffusivity
-    kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp)); %OR
+    kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp));
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]); 
     repH=max(repmat(H,[1,1,ctr.kmax]),1e-8);
     repH2=repmat(H,[1,1,ctr.kmax]);
@@ -161,38 +161,8 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         E(end,:,:)=E(end-2,:,:);
     end
         
-    %OR: function that calculate CTS position + temperate layer thickness
-    [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
-    
-    [idx_i,idx_j,idx_k]=ind2sub(size(CTSm), find(CTSm == 1));
-    idx=zeros(ctr.imax,ctr.jmax);
-    if ~isempty(idx_i)
-        lin_idx = sub2ind(size(idx), idx_i, idx_j);
-        idx(lin_idx) = idx_k;
-    end
-    for i=1:ctr.imax
-        for j=1:ctr.jmax
-            if MASK(i,j)>0 && H(i,j)>0
-                % Find index of the CTS
-                % idx1 = find(E(i,j,:)<Epmp(i,j,:), 1, 'last'); % CTSp
-                % idx2 = find(E(i,j,:)>=Epmp(i,j,:), 1, 'first'); % CTSm
-%                 idx = find(CTSm(i,j,:)==1);
-
-                if Ht(i,j)>0  % positive thickness of temperate ice 
-                    for k=2:ctr.kmax 
-                         % Find if ice is cold below the CTS while it should be temperate
-                         if k>idx(i,j) && E(i,j,k)<Epmp(i,j,k)
-                         E(i,j,k)=Epmp(i,j,k);
-                         end
-                         % Find if temperate conditions are present above the CTS while it should be cold
-                         if k<idx(i,j) && E(i,j,k)>Epmp(i,j,k)
-                         E(i,j,k)=Epmp(i,j,k);
-                         end
-                    end
-                end
-            end
-        end
-    end
+    % OR: function that calculate CTS position + temperate layer thickness
+    [CTSm,CTSp,Ht,E,idx]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
     
     % Temperature field  
     Tp=par.pmp*repH2.*repz;
@@ -276,10 +246,6 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         for j=1:ctr.jmax
 
             if Ht(i,j)>0  || CTSm(i,j,ctr.kmax)==1 % base is temperate
-            % Find index of the CTS
-            % idx=find(E(i,j,:)<Epmp(i,j,:), 1, 'last');
-            % idx=find(E(i,j,:)>=Epmp(i,j,:), 1, 'first');
-%             idx = find(CTSm(i,j,:)==1);
 
             % Temperature/Enthalpy solution
             for k=ctr.kmax-1:-1:2
@@ -370,9 +336,9 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         % ensure fraction drained does not exceed the difference (PISM)
         dz=repH.*dzm; 
         Dfw=zeros(size(wat));
-        Dfw(wat > 0.01) = Dw(wat > 0.01).*dt;
-        Dfw(wat > 0.01) = min(Dfw(wat > 0.01), wat(wat > 0.01) - 0.01);
-        Dw(wat > 0.01) = Dfw(wat > 0.01) .* dz(wat > 0.01);
+        Dfw(wat > wat_max) = Dw(wat > wat_max).*dt;
+        Dfw(wat > wat_max) = min(Dfw(wat > wat_max), wat(wat > wat_max) - wat_max);
+        Dw(wat > wat_max) = Dfw(wat > wat_max) .* dz(wat > wat_max);
 
         % Drain to bed (Wang et al, 2020)
         Dbw=sum(Dw,3);
@@ -406,11 +372,13 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     Fb=ub.*taudxy/par.secperyear; % frictional heating
     BasalHeat=G+Fb; % [W/m2]=[J s-1 m-2]
     % Enthalpy gradient at the base
-    dEdz=(E(:,:,ctr.kmax)-E(:,:,ctr.kmax-1))./(max(H,1e-8).*dzm(:,:,ctr.kmax)); % [J kg-1 m-1]
+    dEdz=(E(:,:,ctr.kmax)-E(:,:,ctr.kmax-1))./(max(H,1e-8).* ...
+        dzm(:,:,ctr.kmax)); % [J kg-1 m-1]
     % Basal (non advective) Heat Flux
     Qq = (par.K*dEdz/par.cp).*(Ptv==0) + (par.K0*dEdz).*(Ptv==1);
     % Basal melting (m/a) based on Aschwanden et al. (2012)
-    Bmelt=min(1,max(-1,((BasalHeat-Qq).*par.secperyear./((1-wat(:,:,ctr.kmax))*par.Latent*par.rho)))); 
+    Bmelt=min(1,max(-1,((BasalHeat-Qq).*par.secperyear./ ...
+        ((1-wat(:,:,ctr.kmax))*par.Latent*par.rho)))); 
     Bmelt(MASK~=1)=0;
     Bmelt(H==0)=0; 
     Bmelt(Cld==1)=0; 
@@ -420,7 +388,6 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     % with a constant drainage rate of 1 mm/a
     % more stable if only applied when considerable Hw
     Hw=max(0,min(Hw+(Bmelt+Dbw-(par.Cdr.*(Hw>=par.Wmax)))*dt,par.Wmax));
-    Hw(Hw<0)=0;    
     Hw(MASK~=1)=0; % only for the grounded ice sheet
 end
 
