@@ -192,13 +192,13 @@ slicecount=0;
 
 [ctr.snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn, ...
     Mb_update,Li,Lj,dtdx,dtdx2,X,Y,x,y,MASK,H,Ho,B,Bo,glMASK0, ...
-    MASKo,Mb,Ts,As,G,u,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
+    MASKo,Mb,Ts,As,G,u,ub,VAF,VA0,POV,SLC,Ag,Af,Btau,IVg,IVf,glflux, ...
     cfflux,dHdt,time,mbcomp,InvVol,ncor,dSLR,SLR,Wd,Wtil,Bmelt,NumStab, ...
     Dbw,CMB,FMB,flw,p,px,py,pxy,nodeu,nodev,nodes,node,VM,Tof,Sof, ...
     TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,shelftune,Melt_mean, ... 
     Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean,CR_mean,FMR_mean, ...
-    fluxmx_mean,fluxmy_mean,Smelt_mean,runoff_mean,rain_mean,acc_mean]= ...
-    InitMatrices(ctr,par,default,fc);
+    fluxmx_mean,fluxmy_mean,Smelt_mean,runoff_mean,rain_mean,acc_mean, ...
+    Neff,expflw,kappa]=InitMatrices(ctr,par,default,fc);
 
 %----------------------------------------------------------------------
 % Read inputdata
@@ -283,7 +283,7 @@ if ctr.Tcalc>=1
         Dfw=zeros(size(E));
         if ctr.Tinit==0
             Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*par.intT,par.Wmax));
-            wat=(E-Epmp)/par.Latent;
+            wat=max(0,(E-Epmp)/par.Latent);
             [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
         end
     end
@@ -456,21 +456,25 @@ for cnt=cnt0:ctr.nsteps
     end
 
 %--------------------------------------------------------------------------
+% Thermomechanical coupling with method of Lliboutry (1979) and Ritz (1992)
+%--------------------------------------------------------------------------
+
+    [A,Ax,Ay,Ad,Tbc]=ThermoCoupling(ctr,par,Tb,H,bMASK,bMASKm, ...
+        bMASKx,bMASKy,wat);
+
+%--------------------------------------------------------------------------
 % Basal sliding coefficients for different slip laws and basal hydrological
 % models. All determined on h-grid
 %--------------------------------------------------------------------------
     
+    updateHydro=and(rem(cnt-1,ctr.FreqHydro)==0,ctr.FreqHydro<Inf);
     taud=par.rho*par.g*Hm.*sqrt(gradm); % taud on d-grid
     taudxy=par.rho*par.g*H.*sqrt(gradxy); % taud on h-grid
-    [Asf,Asfx,Asfy,Asfd,Tbc,Neff,pwv,Wtil,r]=BasalSliding(ctr,par, ...
-        As,Tb,H,B,MASK,Wd,Wtil,Bmelt,flw,bMASK,bMASKm,bMASKx,bMASKy);
-
-%--------------------------------------------------------------------------
-% Thermomechanical coupling with method of Lliboutry (1979) and Ritz (1992)
-%--------------------------------------------------------------------------
-
-    [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm, ...
-        bMASKx,bMASKy,wat);
+%     [Asf,Asfx,Asfy,Asfd,Tbc,Neff,pwv,Wtil,r]=BasalSliding2024(ctr,par, ...
+%         As,Tb,H,B,MASK,Wd,Wtil,Bmelt,flw,bMASK,bMASKm,bMASKx,bMASKy);
+    [Asf,Asfx,Asfy,Asfd,Neff,Wtil,r,expflw]=BasalSliding(ctr,par, ...
+        A,As,Tbc,H,B,MASK,ub,Wd,Wtil,Bmelt,flw,Neff,expflw,kappa,updateHydro, ...
+        bMASK,bMASKm,bMASKx,bMASKy);
 
 %-------------------------------------------------
 % SIA velocity and diffusivities
@@ -535,7 +539,7 @@ for cnt=cnt0:ctr.nsteps
 %-------------------------------------
 % Subglacial water flow
 %-------------------------------------
-    if ctr.subwaterflow==1 || ctr.subwaterflow==3
+    if not(or(ctr.subwaterflow==0, ctr.subwaterflow==2))
         if cntT==1
             [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,max(1e-8,Bmelt+Dbw));
             Wd0=Wd;
@@ -957,6 +961,5 @@ if ctr.runmode<2
 end
 
 end
-
 
 

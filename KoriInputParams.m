@@ -34,15 +34,15 @@ function [par]=KoriInputParams(m,basin)
 % General control parameters
 %-----------------------------------
 
-par.dcolor = 'broc'; % Crameri colorscale (requires CrameriColourMaps7.0.mat) - vik
+par.dcolor = 'broc';  % Crameri colorscale (requires CrameriColourMaps7.0.mat) - vik
 par.color  = 'imola'; % Crameri colorscale (requires CrameriColourMaps7.0.mat) - -roma
 
 %-----------------------------------
 % Numerical control parameters
 %-----------------------------------
 
-par.maxspeed   = 40e3; % maximum ice speed limit (m/a)
-par.omega      = 2.5; % Crank-Nicolson scale factor (0=explicit; 1=implicit; >1 over-implicit)
+par.maxspeed   = 40e3;       % maximum ice speed limit (m/a)
+par.omega      = 2.5;        % Crank-Nicolson scale factor (0=explicit; 1=implicit; >1 over-implicit)
 par.secperyear = 31556926;
 % 2d variables to be saved when timeslice=1
 par.varlist    = {'MASK','H','B','ux','uy','flux','Tbc','SLR','Neff','Melt'};
@@ -51,55 +51,65 @@ par.varlist    = {'MASK','H','B','ux','uy','flux','Tbc','SLR','Neff','Melt'};
 % Subglacial characteristics
 %-----------------------------------
 
-par.PoreFrac       = 0.96; % Fraction of water pressure to balance ice pressure (0.96)
-par.longcoupwater  = 5; % distance in number of ice thicknesses over which
-                        % hydraulic gradient coupling takes place
-par.dirpp_war      = [9 8 7 6 5 4 3 2 1];
-par.waterviscosity = 1.8e-3/par.secperyear;
-par.NeffScale      = 5e6; % scale factor for Effective Pressure
-par.Wdmin          = 1e-8; % minimum value for Wd and Wtil
-par.Wdmax          = 0.015; % maximum value for Wd
-par.Wmax           = 2; % maximum value for Wtil (2 m)
-par.flw0           = 1e5; % maximum value for subglacial water flux
-par.Cdr            = 1e-3; % background till drainage rate
-par.Cc             = 0.12; % till compressibility (Tulaczyk et al., 2000a)
-par.e0             = 0.69; % reference void ratio at N0(Tulaczyk et al., 2000a)
-par.N0             = 1e3; % reference effective pressure (Tulaczyk et al., 2000a)
-par.sigmat         = 0.02; % Ntil lower bound, as fraction of overburden pressure
+par.PoreFrac         = 0.98;                    % fraction of water pressure to balance ice pressure (0.98)
+par.longcoupwater    = 5;                       % distance in number of ice thicknesses over which
+                                                % hydraulic gradient coupling takes place
+par.dirpp_war        = [9 8 7 6 5 4 3 2 1];
+par.waterviscosity   = 1.8e-3/par.secperyear;
+par.NeffScale        = 5e6;                     % scale factor for Effective Pressure
+par.Wdmin            = 1e-8;                    % minimum value for Wd and Wtil
+par.Wdmax            = 0.015;                   % maximum value for Wd
+par.Wmax             = 2;                       % maximum value for Wtil (2 m)
+par.flw0             = 1e5;                     % maximum value for subglacial water flux
+par.Cdr              = 1e-3;                    % background till drainage rate
+par.Cc               = 0.12;                    % till compressibility (Tulaczyk et al., 2000a)
+par.e0               = 0.69;                    % reference void ratio at N0(Tulaczyk et al., 2000a)
+par.N0               = 1e3;                     % reference effective pressure (Tulaczyk et al., 2000a)
+par.sigmat           = 0.02;                    % Ntil lower bound, as fraction of overburden pressure
+par.convWdwPhi       = 1;                       % convolution window for phi
+par.distChannels     = 10*1e+3;                 % distance between channels/canals
+par.effectHydroLimit = 5*1e-4;                  % limit for the effect of hydrology
+par.FactDefTill      = 1.1;                     % till deformation factor
+par.alpha            = 5/4;                     % Darcy-Weisbach exponent
+par.beta             = 3/2;                     % Darcy-Weisbach exponent
+par.f                = 0.1;                     % friction coefficient for water flow
+par.hb               = 0.1;                     % size of bed protrusions
+par.hc               = 0.1;                     % thickness of canals
+par.Qc               = 1.0;                     % critical flux for transition to canals
 
 %-----------------------------------
 % Ice dynamics
 %-----------------------------------
 
-par.ShelfPinning = 1; % sub-shelf pinning of ice shelves based on bedrock variability
-par.g            = 9.81; % gravitational acceleration
-par.rho          = 917.; % ice density
-par.rhow         = 1027.; % sea water density
-par.rhom         = 3370.; % mantle density
-par.n            = 3; % flow law exponent
-par.visciter     = 50; % Maximum number of iterations on the nonlinear part of the SSA equation (50)
-par.visctol      = 5e-1; % Tolerance for calculation of the nonlinear part of the SSA equation (0.5)
-par.veliter      = 50;  % Maximum number of iterations for the iterative SSA velocity solver (50)
-par.veltol       = 1e-4;  % Tolerance for the iterative SSA velocity solver (1e-4)
+par.ShelfPinning = 1;                        % sub-shelf pinning of ice shelves based on bedrock variability
+par.g            = 9.81;                     % gravitational acceleration
+par.rho          = 917.;                     % ice density
+par.rhow         = 1027.;                    % sea water density
+par.rhom         = 3370.;                    % mantle density
+par.n            = 3;                        % flow law exponent
+par.visciter     = 50;                       % Maximum number of iterations on the nonlinear part of the SSA equation (50)
+par.visctol      = 5e-1;                     % Tolerance for calculation of the nonlinear part of the SSA equation (0.5)
+par.veliter      = 50;                       % Maximum number of iterations for the iterative SSA velocity solver (50)
+par.veltol       = 1e-4;                     % Tolerance for the iterative SSA velocity solver (1e-4)
 if basin==1
     par.veltol   = par.veltol/10;
 end
-par.Hiter        = 20; % max iteration number for iterative thickness solver (20)
-par.Htol         = 1e-6;  % tolerance for iterative thickness solver (1e-6)
-par.Z            = 2*(par.g*par.rho)^par.n; % SIA isothermal pre-term
-par.dlim         = 0.9; % Limit on local crevasses depth (% of H)
-par.damlim       = 0.9; % limit on total damage (% of H)
+par.Hiter        = 20;                       % max iteration number for iterative thickness solver (20)
+par.Htol         = 1e-6;                     % tolerance for iterative thickness solver (1e-6)
+par.Z            = 2*(par.g*par.rho)^par.n;  % SIA isothermal pre-term
+par.dlim         = 0.9;                      % Limit on local crevasses depth (% of H)
+par.damlim       = 0.9;                      % limit on total damage (% of H)
 
 %-----------------------------------
 % Ice-ocean interactions
 %-----------------------------------
 
-par.Latent          = 3.35e5; % Latent heat of freezing
-par.cp0             = 3974.; % Heat capacity of ocean water
-par.Soi             = 34.5; % ocean salinity for initialization
-par.Toi             = -1.7; % Ocean temperature for initialization
+par.Latent          = 3.35e5;            % Latent heat of freezing
+par.cp0             = 3974.;             % Heat capacity of ocean water
+par.Soi             = 34.5;              % ocean salinity for initialization
+par.Toi             = -1.7;              % Ocean temperature for initialization
 par.SeaIceThickness = 0.1;
-par.ArcOcean        = 0; % include Ocean Arc to control Melt and calving
+par.ArcOcean        = 0;                 % include Ocean Arc to control Melt and calving
 par.LatentMelt      = (par.rhow*par.cp0)/(par.rho*par.Latent);
 par.f_coriolis      = -1.4e-4;
 par.BetaS           = 7.86e-4 ; 
@@ -108,7 +118,7 @@ par.BetaS           = 7.86e-4 ;
 % PICO and plume model parameters
 %-----------------------------------
 
-par.nbox               = 5; % max number of ocean boxes
+par.nbox               = 5;         % max number of ocean boxes
 par.alphao             = 7.5e-5;
 par.betao              = 7.7e-4;
 par.rhoref             = 1033;
@@ -137,9 +147,9 @@ par.pcof               = [0.1371330075095435
                          -3.520598035764990e5
                           6.387953795485420e4];
 % Plume V2 constants (Lazeroms 2019)
-par.C_eps_lazero       = 0.6; % Slope correction parameter
-par.alpha_coeff_lazero = 3.87e-5; % degC-1 Thermal expansion coefficient
-par.beta_coeff_lazero  = 7.86e-4; % psu-1 Haline contraction coefficient
+par.C_eps_lazero       = 0.6;      % Slope correction parameter
+par.alpha_coeff_lazero = 3.87e-5;  % degC-1 Thermal expansion coefficient
+par.beta_coeff_lazero  = 7.86e-4;  % psu-1 Haline contraction coefficient
 
 %-----------------------------------
 % Calving
@@ -159,9 +169,9 @@ par.Ucrit2       = 1900;
 % Isostasy
 %-----------------------------------
 
-par.FlexRigid = 1e25; % Flexural rigidity
-par.bedrelax  = 3000.; % relaxation time astenosphere
-par.nuB       = 0.25; % Poisson ratio in flexural rigidity
+par.FlexRigid = 1e25;    % Flexural rigidity
+par.bedrelax  = 3000.;   % relaxation time astenosphere
+par.nuB       = 0.25;    % Poisson ratio in flexural rigidity
 
 %-----------------------------------
 % Local sea level (fingerprints)
@@ -170,16 +180,16 @@ par.nuB       = 0.25; % Poisson ratio in flexural rigidity
 par.Re       = 6.3781e6; % Radius Earth
 par.Me       = 5.972e24; % Mass Earth
 par.Aoc      = 3.618e14; % ocean surface
-par.geoidist = 5000e3; % size of convolution filter
-par.rhof     = 1000; % fresh water density
-par.SLref    = 0; % reference sea level
+par.geoidist = 5000e3;   % size of convolution filter
+par.rhof     = 1000;     % fresh water density
+par.SLref    = 0;        % reference sea level
 
 %-----------------------------------
 % Model initialization
 %-----------------------------------
 
-par.stdDevRegul      = 3.5; % standard deviation of the Gaussian filter
-                            % for the regularization in grid cells (3.5)
+par.stdDevRegul      = 3.5;    % standard deviation of the Gaussian filter
+                               % for the regularization in grid cells (3.5)
 if basin==1
     par.stdDevRegul  = par.stdDevRegul+1;
 end
@@ -193,46 +203,47 @@ par.AsScale          = 1e5^(2-m);
 % Thermodynamics
 %-----------------------------------
 
-par.T0      = 273.15; % absolute temperature
-par.K       = 2.1; % thermal conductivity
-par.cp      = 2009; % Heat capacity of ice
-par.K0      = (par.K/par.cp)*1e-5; % thermal conductivity of temperate ice
+par.T0      = 273.15;                  % absolute temperature
+par.K       = 2.1;                     % thermal conductivity
+par.cp      = 2009;                    % Heat capacity of ice
+par.K0      = (par.K/par.cp)*1e-5;     % thermal conductivity of temperate ice
 par.Kc      = par.K/par.cp;
-par.kdif    = par.K/(par.rho*par.cp); % Thermal diffusivity
-par.pmp     = 8.66e-4; % Clausius Clapeyron (Payne, 2000)
+par.kdif    = par.K/(par.rho*par.cp);  % Thermal diffusivity
+par.pmp     = 8.66e-4;                 % Clausius Clapeyron (Payne, 2000)
 % par.pmp=7.9e-8*par.rho*par.g; % value of 7.1e-4 which is lower than above
-par.atune   = 1; % tuning factor in Arrhenius (1 for n=3; 1e-5 for n=4)
-par.R       = 8.314; % gas constant
+par.atune   = 1;                       % tuning factor in Arrhenius (1 for n=3; 1e-5 for n=4)
+par.R       = 8.314;                   % gas constant
 par.udfrac  = 0.25;
-par.intT    = 10; % number of iterations for which tmp is calculated
-par.TrTemp  = -10; % Basal temperature for which ice is frozen to bed
-par.Q1      = 78.2e3; % Arrhenius parameters from Ritz (1992)
+par.intT    = 10;                      % number of iterations for which tmp is calculated
+par.TrTemp  = -10;                     % Basal temperature for which ice is frozen to bed
+par.Q1      = 78.2e3;                  % Arrhenius parameters from Ritz (1992)
 par.Q2      = 95.45e3;
 par.a1      = 1.66e-16;
 par.a2      = 2e-16;
-par.Tref    = 223.15; % Kleiner (2015); Rueckamp (2020)
+par.Tref    = 223.15;                  % Kleiner (2015); Rueckamp (2020)
 
 %-----------------------------------
 % PDD model parameters
 %-----------------------------------
 
-par.PDDth=0; % PDD threshold temperature (0°C)
+par.PDDth=0;                 % PDD threshold temperature (0°C)
 par.Train     = 2;
 par.Tsnow     = 0;
-par.snowfac   = 3/par.rho; % PDD factor for snow melt
-par.icefac    = 8/par.rho; % PDD factor for ice melt
-par.d_ice     = 5; % Maximum depth of refreezing of percolating meltwater (m)
-par.Tlapse    = -0.008; % Lapse rate for temperature correction with height
-par.Tsigma    = 4; % standard deviation of mean T for PDD calculation
-par.Psigma    = 3.5; % standard deviation of mean T for rain factor calculation
+par.snowfac   = 3/par.rho;   % PDD factor for snow melt
+par.icefac    = 8/par.rho;   % PDD factor for ice melt
+par.d_ice     = 5;           % Maximum depth of refreezing of percolating meltwater (m)
+par.Tlapse    = -0.008;      % Lapse rate for temperature correction with height
+par.Tsigma    = 4;           % standard deviation of mean T for PDD calculation
+par.Psigma    = 3.5;         % standard deviation of mean T for rain factor calculation
 par.PDDsteps  = 48;
 
 %-----------------------------------
 % Basin model parameters
 %-----------------------------------
 
-par.As0  = 1e-20; % sliding coefficient outside basin
-par.A0   = 1e-20; % Ice fluidity outside basin
+par.As0  = 1e-20;   % sliding coefficient outside basin
+par.A0   = 1e-20;   % Ice fluidity outside basin
 
 end
+
 
