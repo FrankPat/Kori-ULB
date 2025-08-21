@@ -7,35 +7,35 @@ NOTE: This version is the version under development. Stable versions are availab
 
 **Features**
 
--2.5D Finite difference ice sheet/ice shelf model
+- 2.5D Finite difference ice sheet/ice shelf model
 
--SSA-SIA hybrid velocity calculation (on Arakawa C grids)
+- SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 
--SIA diffusive calculation (on Arakawa B-grid)
+- SIA diffusive calculation (on Arakawa B-grid)
 
--3D temperature and enthalpy field
+- 3D temperature and enthalpy field
 
--Full thermomechanical coupling
+- Full thermomechanical coupling
 
--Local and non-local isostatic adjustment (ELRA model) with spatially varying flexural rigidity and asthenosphere viscosity
+- Local and non-local isostatic adjustment (ELRA model) with spatially varying flexural rigidity and asthenosphere viscosity
 
--General slip law (viscous - power law - regularized Coulomb)
+- General slip law (viscous - power law - regularized Coulomb)
 
--Grounding line parameterization with buttressing (optional)
+- Grounding line parameterization with buttressing (optional)
 
--Nudging method to determine spatially-varying basal slip coefficients
+- Nudging method to determine spatially-varying basal slip coefficients
 
--Nudging method to optimize sub-shelf mass balance for steady-state
+- Nudging method to optimize sub-shelf mass balance for steady-state
 
--PICO/PICOP/Plume ocean model for sub-shelf melt calculation
+- PICO/PICOP/Plume ocean model for sub-shelf melt calculation
 
--Calving, hydrofracturing and damage
+- Calving, hydrofracturing and damage
 
--Subglacial hydrology and till deformation
+- Subglacial hydrology and till deformation
 
--PDD model for surface melt
+- PDD model for surface melt
 
--Colorblind-friendly output figures
+- Colorblind-friendly output figures
 
 
 **Model call**
