@@ -1,9 +1,14 @@
-function [A,Ax,Ay,Ad]=ThermoCoupling(ctr,par,Tb,Tbc,H,bMASK,bMASKm, ...
+function [A,Ax,Ay,Ad,Tbc]=ThermoCoupling(ctr,par,Tb,H,bMASK,bMASKm, ...
     bMASKx,bMASKy,wat)
 
 % Kori-ULB
 % Thermomechanical coupling using Arrhenius relationship
 
+    if ctr.Tcalc>0
+        Tbc=Tb+par.pmp*H;
+    else
+        Tbc=false;
+    end
     A=zeros(ctr.imax,ctr.jmax)+ctr.Ao;
     if ctr.Tcalc==2
         A=0.5*par.atune*((Tbc<-6.5)*par.a1+(Tbc>=-6.5)*par.a2).* ...

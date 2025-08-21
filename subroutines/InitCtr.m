@@ -107,6 +107,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     if any(ismember(fields(fc),'butfac'))==0
         fc.butfac=ones(ctr.nsteps,1);
     end
+    ctr.FreqHydro(any(ismember(fields(ctr),'FreqHydro'))==0)=1;
 end
 
 
