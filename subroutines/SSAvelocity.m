@@ -116,8 +116,11 @@ function [uxssa,uyssa,beta2,eta,etaD,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
             end
         else
             scale_eta=1;
-%             damage=zeros(ctr.imax,ctr.jmax); % If damage exists, this
-%             will keep damage on the existing damage field
+            if ctr.damexist==0
+                % If damage exists, this will keep damage constant, else
+                % initializes it to zero damage
+                damage=zeros(ctr.imax,ctr.jmax);
+            end
         end
         eta=eta.*scale_eta;
         
