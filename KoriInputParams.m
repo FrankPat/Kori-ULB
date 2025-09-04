@@ -221,6 +221,12 @@ par.Q2      = 95.45e3;
 par.a1      = 1.66e-16;
 par.a2      = 2e-16;
 par.Tref    = 223.15;                  % Kleiner (2015); Rueckamp (2020)
+par.atune   = 1.0; % tuning factor in Arrhenius
+par.a1D     = 3.985e-13*par.secperyear; % Greve and Blatter (correction from Huybrechts)
+par.a2D     = 1.916e3*par.secperyear;
+par.Q1D     = 60e3;
+par.Q2D     = 139e3;
+
 
 %-----------------------------------
 % PDD model parameters
