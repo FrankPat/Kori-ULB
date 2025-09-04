@@ -1,12 +1,15 @@
-function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
+function [uxssa,uyssa,beta2,eta,etaD,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     damage,NumStabVel]= ...
-    SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy, ...
-    uxssa,uyssa,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
-    nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,node,nodes, ...
+    SSAvelocity(ctr,par,su,Hmx,Hmy,gradmx,gradmy,signx,signy,zeta, ...
+    uxssa,uyssa,etaD,A3d,H,HB,B,stdB,Asf,A,MASK,glMASK,HAF,HAFmx,HAFmy,cnt, ...
+    nodeu,nodev,MASKmx,MASKmy,bMASK,uxsia,uysia,udx,udy,ubx,uby,node,nodes, ...
     Mb,Melt,dtdx,dtdx2,VM,damage,shelftune)
 
 % Kori-ULB
-% Iterative solution to the SSA velocity (both pure SSA and hybrid model
+% Iterative solution to the SSA velocity (with SSA, hybrid and DIVA model)
+% ctr.SSA=1: uxssa, uyssa = SSA velocity
+% ctr.SSA=2: uxssa, uyssa = basal SSA velocity (without deformational)
+% ctr.SSA=3: uxssa, uyssa = total vertically integrated velocity
 
     taudx=par.rho*par.g*Hmx.*sqrt(gradmx).*signx;
     taudy=par.rho*par.g*Hmy.*sqrt(gradmy).*signy;
@@ -26,6 +29,13 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     else
         beta2=fg.*(ussa.^(1/ctr.m-1)).*((ussa+ctr.u0).* ...
             Asf/ctr.u0).^(-1/ctr.m);
+    end
+    if ctr.SSA==3
+        % Integration factor.
+        [F2,~,~]=Fint(ctr,etaD,H,zeta);
+        % Effective beta from F2 correction in DIVA model.
+        beta2=beta2./(1.0+beta2.*F2);
+        beta2(beta2>1e8)=1./F2(beta2>1e8); % frozen conditions
     end
     beta2=min(beta2,1e8);
     beta2(MASK==0)=0;
@@ -47,7 +57,7 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     end
 
     % Viscosity on edge (or when viscosity cannot be calculated)
-    if ctr.SSA>1 % hydrid model
+    if ctr.SSA==2 % hydrid model
         udx(HAFmx<0)=0; % no deformation for floating cells
         udy(HAFmy<0)=0;
     else % pure SSA
@@ -55,8 +65,15 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
         udy=zeros(ctr.imax,ctr.jmax);
     end
     for ll=1:par.visciter % iteration over effective viscosity
-        [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
-            glMASK,shelftune,damage,ctr);
+        if ctr.SSA<3
+            % Effective viscosity for SSA and hybrid model
+            [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
+                glMASK,shelftune,damage,ctr);
+        else
+            % Effective viscosity for DIVA solver
+            [eta,etaD,dudx,dvdy,dudy,dvdx]=EffViscDIVA(A3d,betax,betay,ubx,uby, ...
+                etaD,H,damage,uxssa,uyssa,zeta,MASK,glMASK,shelftune,ctr,par);
+        end
         if ctr.damage==1 && (ctr.damexist==1 || cnt>1)
             if ll==1
                 dtr=zeros(ctr.imax,ctr.jmax);
@@ -99,27 +116,42 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
             end
         else
             scale_eta=1;
-            damage=zeros(ctr.imax,ctr.jmax);
+%             damage=zeros(ctr.imax,ctr.jmax); % If damage exists, this
+%             will keep damage on the existing damage field
         end
         eta=eta.*scale_eta;
         
         [uxs1,uys1,su,flagU,relresU,iterU]=SparseSolverSSA(nodeu,nodev, ...
-            su,MASKmx,MASKmy,bMASK,glMASK, ...
-            H,eta,betax,betay,uxssa,uyssa,uxsia,uysia,udx,udy,taudx, ...
-            taudy,ctr,par);
+            su,MASKmx,MASKmy,bMASK,glMASK,H,eta,betax,betay,uxssa,uyssa, ...
+            uxsia,uysia,udx,udy,taudx,taudy,ctr,par);
         duxs=sqrt((uxs1-uxssa).^2+(uys1-uyssa).^2);
         duxs(isnan(duxs))=0;
         uxssa=uxs1;
         uyssa=uys1;
         limit=sum(duxs(:))/(ctr.imax*ctr.jmax);
+        if ctr.SSA==3 % DIVA solver
+            % Integration factor.
+            [F2,F2x,F2y]=Fint(ctr,etaD,H,zeta);
+            % Eq. 32, Lipscomb et al. (2019).
+            ubx=uxssa./(1.0+betax.*F2x);
+            uby=uyssa./(1.0+betay.*F2y);
+        end        
         %---------iterative beta---------
         if cnt<=ctr.BetaIter
             ussa=vec2h(uxssa,uyssa); %VL: ussa on h-grid
+            if ctr.SSA==3
+                ussa=vec2h(ubx,uby); % DIVA: initialize with basal velocity
+            end
             if ctr.u0>1e10
                 beta2=fg.*(ussa.^(1/ctr.m-1)).*Asf.^(-1/ctr.m);
             else
                 beta2=fg.*(ussa.^(1/ctr.m-1)).*((ussa+ctr.u0).*Asf ...
                     /ctr.u0).^(-1/ctr.m);
+            end
+            if ctr.SSA==3
+                % Effective beta from F2 correction in DIVA model.
+                beta2=beta2./(1.0+beta2.*F2);
+                beta2(beta2>1e8)=1./F2(beta2>1e8); % frozen conditions
             end
             beta2=min(beta2,1e8);
             beta2(MASK==0)=0;
@@ -153,8 +185,8 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     uyssa(Hmy==0 & HAFmy>0)=0;
     uxssa=min(max(-par.maxspeed,uxssa),par.maxspeed);
     uyssa=min(max(-par.maxspeed,uyssa),par.maxspeed);
-    ux=uxssa;   %LZ2021
-    uy=uyssa;   %LZ2021
+    ux=uxssa;
+    uy=uyssa;
     if ctr.SSAdiffus==2 % SSA as basal velocity only
         ux=ux+udx;
         uy=uy+udy;
@@ -162,10 +194,20 @@ function [uxssa,uyssa,beta2,eta,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     if ctr.SSA==1 % basal sliding velocity SSA
         ubx=ux;
         uby=uy;
-    else
+    end
+    if ctr.SSA==2
         ubx=ux-udx;
         uby=uy-udy;
     end
+    
+    % return beta2 value instead of effective beta2 for DIVA model
+    if ctr.SSA==3
+        beta2=beta2./(1-beta2.*F2);
+        beta2(beta2>1e8)=1./F2(beta2>1e8);
+        beta2=min(beta2,1e8);
+        beta2(MASK==0)=0;
+    end
+    
 end
 
 

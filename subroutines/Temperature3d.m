@@ -1,22 +1,20 @@
 function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     ctr,dt,gradsx,gradsy,gradHx,gradHy,udx,udy,ub,ubx,uby,zeta,gradxy,H, ...
-    dzc,dzm,dzp,G,taudxy,A,DeltaT,MASK,Bmelt,cnt)
+    dzc,dzm,dzp,G,taudxy,A,DeltaT,MASK,Bmelt,etaD,beta2,cnt)
 
 % Kori-ULB
 % 3d englacial temperature calculation in ice sheet and ice shelves
 
     tmp(:,:,1)=Ts+par.T0;
     
-    % horizontal velocities on H grid
-    uxdt=0.5*(udx+circshift(udx,[0 1]));
-    uydt=0.5*(udy+circshift(udy,[1 0]));
-    uxbt=0.5*(ubx+circshift(ubx,[0 1]));
-    uybt=0.5*(uby+circshift(uby,[1 0]));
-    pl=repmat(pxy,[1,1,ctr.kmax]);
-    zl=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
-    ushllib=(pl+2)./(pl+1).*(1-zl.^(pl+1));
-    ut=repmat(uxdt,[1,1,ctr.kmax]).*ushllib+repmat(uxbt,[1,1,ctr.kmax]);
-    vt=repmat(uydt,[1,1,ctr.kmax]).*ushllib+repmat(uybt,[1,1,ctr.kmax]);
+    % horizontal and vertical velocities on H grid
+    if ctr.SSA==3
+        [ut,vt,wt]=Velocity3dDIVA(ubx,uby,etaD,H,gradsx,gradsy, ...
+            gradHx,gradHy,Mb,Bmelt,beta2,zeta,ctr);
+    else
+        [ut,vt,wt,pl]=Velocity3d(udx,udy,ubx,uby,pxy,zeta,Mb,Bmelt,gradsx, ...
+            gradsy,gradHx,gradHy,ctr);
+    end
     
     % horizontal advection
     dTdxm=(circshift(tmp,[0 -1])-tmp)/ctr.delta;
@@ -29,21 +27,24 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     advecy=zeros(ctr.imax,ctr.jmax,ctr.kmax);
     advecy(vt>0)=vt(vt>0).*dTdyp(vt>0)*dt;
     advecy(vt<0)=vt(vt<0).*dTdym(vt<0)*dt;
-    
-    % vertical velocity according to Pattyn (2010) with Lliboutry shape
-    % function
 
-    wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
-    w=repmat(-Mb,[1,1,ctr.kmax]).*wshllib-Bmelt+ut.* ...
-        (repmat(gradsx,[1,1,ctr.kmax])-zl.*repmat(gradHx,[1,1,ctr.kmax])) ...
-        +vt.*(repmat(gradsy,[1,1,ctr.kmax])-zl.*repmat(gradHy,[1,1,ctr.kmax]));
-        
     % Internal heating
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
-    dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/(par.n+2),[1,1,ctr.kmax]).* ...
-        repz.^pl;
-    fric=par.rho*par.g*par.kdif*dt*repz.*dudz.*repmat(sqrt(gradxy), ...
-        [1,1,ctr.kmax])/par.K;
+    if ctr.SSA==3
+        dudz=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+        for k=2:ctr.kmax
+            dudz(:,:,k)=(ut(:,:,k)-ut(:,:,k-1))/(zeta(k)-zeta(k-1)).* ...
+                gradsx+(vt(:,:,k)-vt(:,:,k-1))/(zeta(k)- ...
+                zeta(k-1)).*gradsy;
+        end
+        fric=par.rho*par.g*par.kdif*dt*repz.*dudz/par.K;
+    else
+        dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/ ...
+            (par.n+2),[1,1,ctr.kmax]).*repz.^pl;
+        fric=par.rho*par.g*par.kdif*dt*repz.*dudz.*repmat(sqrt(gradxy), ...
+            [1,1,ctr.kmax])/par.K;
+    end
+    
     repmask=repmat(MASK,[1,1,ctr.kmax]);
     fric(repmask==0)=0; % no frictional heat in ice shelves
     extraterm=max(min(fric-advecx-advecy,5),-5); %10
@@ -52,9 +53,9 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     repH2=repmat(H,[1,1,ctr.kmax]);
     repH=max(repH2,1e-8);
     Tp=par.pmp*repH2.*repz;
-    atp=(2*par.kdif*par.secperyear./(repH.*dzm)-w)*dt./(repH.*dzc);
+    atp=(2*par.kdif*par.secperyear./(repH.*dzm)-wt)*dt./(repH.*dzc);
     btp=1+2*par.kdif*par.secperyear*dt./((repH.^2).*dzp.*dzm);
-    ctp=(2*par.kdif*par.secperyear./(repH.*dzp)+w)*dt./(repH.*dzc);
+    ctp=(2*par.kdif*par.secperyear./(repH.*dzp)+wt)*dt./(repH.*dzc);
     ftp=ones(ctr.imax,ctr.jmax,ctr.kmax);
     gtp=zeros(ctr.imax,ctr.jmax,ctr.kmax);
     % basal BC with strain heating (correction with ud)

@@ -5,7 +5,7 @@ function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
     VM,Tof,Sof,TFf,Tsf,Mbf,Prf,Evpf,runofff,Melt,shelftune,Melt_mean, ... 
     Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean,CR_mean,FMR_mean, ...
     fluxmx_mean,fluxmy_mean,Smelt_mean,runoff_mean,rain_mean,acc_mean, ...
-    Neff,expflw,kappa]=InitMatrices(ctr,par,default,fc)
+    Neff,expflw,kappa,etaD,beta2]=InitMatrices(ctr,par,default,fc)
     
 % Kori-ULB
 % Initialization of main matrices used in the model
@@ -92,6 +92,14 @@ function [snapshot,plotst,cnt_atm,snp_atm,cnt_ocn,snp_ocn,Mb_update,Li,Lj, ...
     expflw = ones(ctr.imax,ctr.jmax);
     kappa=0;
     [px,py,pxy]=deal(p);
+    
+    if ctr.SSA==3
+        etaD=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+        beta2=zeros(ctr.imax,ctr.jmax);
+    else
+        etaD=false;
+        beta2=false;
+    end
     
     % initialization of sparse matrix system for velocities
     nodeu=linspace(1,ctr.imax*ctr.jmax*2-1,ctr.imax*ctr.jmax)';

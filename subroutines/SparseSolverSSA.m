@@ -1,6 +1,6 @@
 function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
-    MASKmx,MASKmy,bMASK,glMASK, ...
-    H,eta,betax,betay,u,v,usia,vsia,udx,udy,taudx,taudy,ctr,par)
+    MASKmx,MASKmy,bMASK,glMASK,H,eta,betax,betay,u,v,usia,vsia,udx,udy, ...
+    taudx,taudy,ctr,par)
 
 % Kori-ULB
 % Solving the SSA equation (both pure and hybrid SSA)
@@ -112,7 +112,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         U1(MASKb==1)=4.*eta1(MASKb==1)/ctr.delta;
         Uv1(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
         Uv3(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-        R0(MASKb==1)=1.5*0.5*par.rho*par.g*H1(MASKb==1).^2.*(1.- ...
+        R0(MASKb==1)=0.5*par.rho*par.g*H1(MASKb==1).^2.*(1.- ...
             par.rho/par.rhow);
 
         % j=jmax-1; contact with ocean
@@ -127,7 +127,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         U2(MASKb==1)=-4.*eta(MASKb==1)/ctr.delta;
         Uv0(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
         Uv2(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-        R0(MASKb==1)=1.5*0.5*par.rho*par.g*H(MASKb==1).^2.*(1.- ...
+        R0(MASKb==1)=0.5*par.rho*par.g*H(MASKb==1).^2.*(1.- ...
             par.rho/par.rhow);
 
         % i=1; contact with ocean (v-direction)
@@ -202,7 +202,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         U2(MASKb==1)=-4.*eta(MASKb==1)/ctr.delta;
         Uv0(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
         Uv2(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-        R0(MASKb==1)=1.5*0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(MASKb==1).^2;
+        R0(MASKb==1)=0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(MASKb==1).^2;
 
         % i=1: periodic boundary condition
         MASKb=zeros(ctr.imax,ctr.jmax); % boundary mask
@@ -255,38 +255,39 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         R0(MASKb==1)=0;
     end
     
-    % Boundaries for the calving front (implies overriding original values)
-    R0(BCMASK>0)=0;
-    U0(BCMASK>0)=0;
-    U1(BCMASK>0)=0;
-    U2(BCMASK>0)=0;
-    U3(BCMASK>0)=0;
-    U4(BCMASK>0)=0;
-    U5(BCMASK>0)=0;
-    U6(BCMASK>0)=0;
-    U7(BCMASK>0)=0;
-    U8(BCMASK>0)=0;
-    U9(BCMASK>0)=0;
-    U10(BCMASK>0)=0;
-    Uv0(BCMASK>0)=0;
-    Uv1(BCMASK>0)=0;
-    Uv2(BCMASK>0)=0;
-    Uv3(BCMASK>0)=0;
-    
-    % ice-ocean boundary (BCMASK=1)
-    U0(BCMASK==1)=4.*eta(BCMASK==1)/ctr.delta;
-    U2(BCMASK==1)=-4.*eta(BCMASK==1)/ctr.delta;
-    Uv0(BCMASK==1)=2.*eta(BCMASK==1)/ctr.delta;
-    Uv2(BCMASK==1)=-2.*eta(BCMASK==1)/ctr.delta;
-    R0(BCMASK==1)=1.5*0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(BCMASK==1).^2;
-    
-    % ocean-ice boundary (BCMASK=2)
-    U0(BCMASK==2)=-4.*eta1(BCMASK==2)/ctr.delta;
-    U1(BCMASK==2)=4.*eta1(BCMASK==2)/ctr.delta;
-    Uv1(BCMASK==2)=2.*eta(BCMASK==2)/ctr.delta;
-    Uv3(BCMASK==2)=-2.*eta(BCMASK==2)/ctr.delta;
-    R0(BCMASK==2)=1.5*0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H1(BCMASK==2).^2;
-    
+    if ctr.shelfBC==1
+        % Boundaries for the calving front (implies overriding original values)
+        R0(BCMASK>0)=0;
+        U0(BCMASK>0)=0;
+        U1(BCMASK>0)=0;
+        U2(BCMASK>0)=0;
+        U3(BCMASK>0)=0;
+        U4(BCMASK>0)=0;
+        U5(BCMASK>0)=0;
+        U6(BCMASK>0)=0;
+        U7(BCMASK>0)=0;
+        U8(BCMASK>0)=0;
+        U9(BCMASK>0)=0;
+        U10(BCMASK>0)=0;
+        Uv0(BCMASK>0)=0;
+        Uv1(BCMASK>0)=0;
+        Uv2(BCMASK>0)=0;
+        Uv3(BCMASK>0)=0;
+
+        % ice-ocean boundary (BCMASK=1)
+        U0(BCMASK==1)=4.*eta(BCMASK==1)/ctr.delta;
+        U2(BCMASK==1)=-4.*eta(BCMASK==1)/ctr.delta;
+        Uv0(BCMASK==1)=2.*eta(BCMASK==1)/ctr.delta;
+        Uv2(BCMASK==1)=-2.*eta(BCMASK==1)/ctr.delta;
+        R0(BCMASK==1)=0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(BCMASK==1).^2;
+
+        % ocean-ice boundary (BCMASK=2)
+        U0(BCMASK==2)=-4.*eta1(BCMASK==2)/ctr.delta;
+        U1(BCMASK==2)=4.*eta1(BCMASK==2)/ctr.delta;
+        Uv1(BCMASK==2)=2.*eta(BCMASK==2)/ctr.delta;
+        Uv3(BCMASK==2)=-2.*eta(BCMASK==2)/ctr.delta;
+        R0(BCMASK==2)=0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H1(BCMASK==2).^2;
+    end
     
 
     % v-velocities: quadrant V and Vu of solution matrix
@@ -379,7 +380,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         V1(MASKb==1)=4.*eta1(MASKb==1)/ctr.delta;
         Vu1(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
         Vu3(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-        S0(MASKb==1)=1.5*0.5*par.rho*par.g*H1(MASKb==1).^2.*(1.-par.rho/par.rhow);
+        S0(MASKb==1)=0.5*par.rho*par.g*H1(MASKb==1).^2.*(1.-par.rho/par.rhow);
 
         % i=imax-1; contact with ocean
         MASKb=zeros(ctr.imax,ctr.jmax); % boundary mask
@@ -393,7 +394,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         V2(MASKb==1)=-4.*eta(MASKb==1)/ctr.delta;
         Vu0(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
         Vu2(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-        S0(MASKb==1)=1.5*0.5*par.rho*par.g*H(MASKb==1).^2.*(1.-par.rho/par.rhow);
+        S0(MASKb==1)=0.5*par.rho*par.g*H(MASKb==1).^2.*(1.-par.rho/par.rhow);
 
         % j=1; contact with ocean (u-direction)
         MASKb=zeros(ctr.imax,ctr.jmax); % boundary mask
@@ -491,7 +492,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
             V2(MASKb==1)=-4.*eta(MASKb==1)/ctr.delta;
             Vu0(MASKb==1)=2.*eta(MASKb==1)/ctr.delta;
             Vu2(MASKb==1)=-2.*eta(MASKb==1)/ctr.delta;
-            S0(MASKb==1)=1.5*0.5*par.rho*par.g*H(MASKb==1).^2.*(1.- ...
+            S0(MASKb==1)=0.5*par.rho*par.g*H(MASKb==1).^2.*(1.- ...
                 par.rho/par.rhow);
             V0(ctr.imax-1,ctr.jmax)=1;
             V2(ctr.imax-1,ctr.jmax)=-1;
@@ -521,38 +522,40 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         S0(MASKb==1)=0;
     end
 
-    % Boundaries for the calving front (implies overriding original values)
-    S0(BCMASK>0)=0;
-    V0(BCMASK>0)=0;
-    V1(BCMASK>0)=0;
-    V2(BCMASK>0)=0;
-    V3(BCMASK>0)=0;
-    V4(BCMASK>0)=0;
-    V5(BCMASK>0)=0;
-    V6(BCMASK>0)=0;
-    V7(BCMASK>0)=0;
-    V8(BCMASK>0)=0;
-    V9(BCMASK>0)=0;
-    V10(BCMASK>0)=0;
-    V11(BCMASK>0)=0;
-    Vu0(BCMASK>0)=0;
-    Vu1(BCMASK>0)=0;
-    Vu2(BCMASK>0)=0;
-    Vu3(BCMASK>0)=0;
-    
-    % ice-ocean boundary (BCMASK=1)
-    V0(BCMASK==1)=4.*eta(BCMASK==1)/ctr.delta;
-    V2(BCMASK==1)=-4.*eta(BCMASK==1)/ctr.delta;
-    Vu0(BCMASK==1)=2.*eta(BCMASK==1)/ctr.delta;
-    Vu2(BCMASK==1)=-2.*eta(BCMASK==1)/ctr.delta;
-    S0(BCMASK==1)=1.5*0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(BCMASK==1).^2;
-    
-    % ocean-ice boundary (BCMASK=2)
-    V0(BCMASK==2)=-4.*eta1(BCMASK==2)/ctr.delta;
-    V1(BCMASK==2)=4.*eta1(BCMASK==2)/ctr.delta;
-    Vu1(BCMASK==2)=2.*eta(BCMASK==2)/ctr.delta;
-    Vu3(BCMASK==2)=-2.*eta(BCMASK==2)/ctr.delta;
-    S0(BCMASK==2)=1.5*0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H1(BCMASK==2).^2;
+    if ctr.shelfBC==1
+        % Boundaries for the calving front (implies overriding original values)
+        S0(BCMASK>0)=0;
+        V0(BCMASK>0)=0;
+        V1(BCMASK>0)=0;
+        V2(BCMASK>0)=0;
+        V3(BCMASK>0)=0;
+        V4(BCMASK>0)=0;
+        V5(BCMASK>0)=0;
+        V6(BCMASK>0)=0;
+        V7(BCMASK>0)=0;
+        V8(BCMASK>0)=0;
+        V9(BCMASK>0)=0;
+        V10(BCMASK>0)=0;
+        V11(BCMASK>0)=0;
+        Vu0(BCMASK>0)=0;
+        Vu1(BCMASK>0)=0;
+        Vu2(BCMASK>0)=0;
+        Vu3(BCMASK>0)=0;
+
+        % ice-ocean boundary (BCMASK=1)
+        V0(BCMASK==1)=4.*eta(BCMASK==1)/ctr.delta;
+        V2(BCMASK==1)=-4.*eta(BCMASK==1)/ctr.delta;
+        Vu0(BCMASK==1)=2.*eta(BCMASK==1)/ctr.delta;
+        Vu2(BCMASK==1)=-2.*eta(BCMASK==1)/ctr.delta;
+        S0(BCMASK==1)=0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H(BCMASK==1).^2;
+
+        % ocean-ice boundary (BCMASK=2)
+        V0(BCMASK==2)=-4.*eta1(BCMASK==2)/ctr.delta;
+        V1(BCMASK==2)=4.*eta1(BCMASK==2)/ctr.delta;
+        Vu1(BCMASK==2)=2.*eta(BCMASK==2)/ctr.delta;
+        Vu3(BCMASK==2)=-2.*eta(BCMASK==2)/ctr.delta;
+        S0(BCMASK==2)=0.5*par.rho*par.g*(1.-par.rho/par.rhow)*H1(BCMASK==2).^2;
+    end
 
     
     nodes=ctr.imax*ctr.jmax;
@@ -694,12 +697,12 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
     A=sparse(row,col,V);
 
     % Cholesky factor and solve
-    if ctr.ItSolv==1
+    if ctr.ItSolv>=1
         D=diag(diag(A));
         C1=tril(A);
         C2=D\triu(A);
         [s,flag,relres,iter]=bicgstab(A,R,par.veltol,par.veliter,C1,C2,s0);
-        if flag>0
+        if flag>0 && ctr.ItSolv==1 % ItSolve==2, keep previous estimate
             s=A\R;
         end
     else

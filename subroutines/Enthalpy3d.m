@@ -2,7 +2,7 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     Enthalpy3d(par,ctr,E,Mb,Ts,G,A,H, ...
     pxy,dt,gradsx,gradsy,gradHx,gradHy,gradxy,taudxy, ...
     udx,udy,ub,ubx,uby,zeta,dzc,dzm,dzp,DeltaT,MASK, ...
-    Bmelt,Epmp,CTSm,CTSp,Hw,Ht,Dbw,Dfw,cnt)
+    Bmelt,Epmp,CTSm,CTSp,Hw,Ht,Dbw,Dfw,etaD,beta2,cnt)
 
 % Kori-ULB
 % 3d englacial enthalpy calculation in ice sheet and ice shelves
@@ -29,16 +29,14 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         DFlux=zeros(size(E));
     end
     
-    % horizontal velocities on H grid
-    uxdt=0.5*(udx+circshift(udx,[0 1]));
-    uydt=0.5*(udy+circshift(udy,[1 0]));
-    uxbt=0.5*(ubx+circshift(ubx,[0 1])); 
-    uybt=0.5*(uby+circshift(uby,[1 0]));
-    pl=repmat(pxy,[1,1,ctr.kmax]);
-    zl=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
-    ushllib=(pl+2)./(pl+1).*(1-zl.^(pl+1));
-    ut=repmat(uxdt,[1,1,ctr.kmax]).*ushllib+repmat(uxbt,[1,1,ctr.kmax]);
-    vt=repmat(uydt,[1,1,ctr.kmax]).*ushllib+repmat(uybt,[1,1,ctr.kmax]);
+    % horizontal and vertical velocities on H grid
+    if ctr.SSA==3
+        [ut,vt,wt]=Velocity3dDIVA(ubx,uby,etaD,H,gradsx,gradsy, ...
+            gradHx,gradHy,Mb,Bmelt,beta2,zeta,ctr);
+    else
+        [ut,vt,wt,pl]=Velocity3d(udx,udy,ubx,uby,pxy,zeta,Mb,Bmelt,gradsx, ...
+            gradsy,gradHx,gradHy,ctr);
+    end
     
     % horizontal advection
     dEdxm=(circshift(E,[0 -1])-E)/ctr.delta;
@@ -51,24 +49,29 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     advecy=zeros(ctr.imax,ctr.jmax,ctr.kmax);
     advecy(vt>0)=vt(vt>0).*dEdyp(vt>0)*dt;
     advecy(vt<0)=vt(vt<0).*dEdym(vt<0)*dt;
-    
-    % vertical velocity according to Pattyn (2010) with Lliboutry shape
-    % function
-    wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
-    w=repmat(-Mb,[1,1,ctr.kmax]).*wshllib-max(Bmelt,-5e-2)+ut.* ...
-        (repmat(gradsx,[1,1,ctr.kmax])-zl.*repmat(gradHx,[1,1,ctr.kmax])) ...
-        +vt.*(repmat(gradsy,[1,1,ctr.kmax])-zl.*repmat(gradHy,[1,1,ctr.kmax]));
-    
+        
     % Internal/strain heating [CHECK THIS BECAUSE CHANGED]
-    dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/(par.n+2),[1,1,ctr.kmax]).*repz.^pl; 
-    fric=par.rho.*par.g.*repmat(sqrt(gradxy),[1,1,ctr.kmax]).*repz.*dudz.*dt./par.rho;
+    repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
+    if ctr.SSA==3
+        dudz=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+        for k=2:ctr.kmax
+            dudz(:,:,k)=(ut(:,:,k)-ut(:,:,k-1))/(zeta(k)-zeta(k-1)).* ...
+                gradsx+(vt(:,:,k)-vt(:,:,k-1))/(zeta(k)- ...
+                zeta(k-1)).*gradsy;
+        end
+        fric=par.g*dt*repz.*dudz;
+    else
+        dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/ ...
+            (par.n+2),[1,1,ctr.kmax]).*repz.^pl;
+        fric=par.g*dt*repz.*dudz.*repmat(sqrt(gradxy),[1,1,ctr.kmax]);
+    end
     repmask=repmat(MASK,[1,1,ctr.kmax]);
     fric(repmask==0)=0; % no frictional heat in ice shelves
     extraterm=max(min((fric-advecx-advecy-DFlux),5*par.cp),-5*par.cp); 
    
     % central difference for diffusion & upstream difference for advection
-    atp=dt*((2*kdif*par.secperyear./(repH.^2.*dzm.*dzc))-w./(dzm.*repH)); % E(k-1)
-    btp=1+dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzm))-w./(dzm.*repH)); % E(k)
+    atp=dt*((2*kdif*par.secperyear./(repH.^2.*dzm.*dzc))-wt./(dzm.*repH)); % E(k-1)
+    btp=1+dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzm))-wt./(dzm.*repH)); % E(k)
     ctp=dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzc))); % E(k+1)
 
     % correction for discontinuity at the CTS
@@ -79,16 +82,16 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     
     % Correction CTS: upstream differences for advection
     atp(CTSp==1)=dt*((2*(Kb(CTSp==1))*par.secperyear./(repH(CTSp==1).^2.* ...
-        dzm(CTSp==1).*dzc(CTSp==1)))-w(CTSp==1)./(dzm(CTSp==1).*repH(CTSp==1))); % E(k-1)
+        dzm(CTSp==1).*dzc(CTSp==1)))-wt(CTSp==1)./(dzm(CTSp==1).*repH(CTSp==1))); % E(k-1)
     btp(CTSp==1)=1+dt*(((Ka(CTSp==1)+Kb(CTSp==1))*par.secperyear./ ...
-        (repH(CTSp==1).^2.*dzp(CTSp==1).*dzm(CTSp==1)))-w(CTSp==1)./ ...
+        (repH(CTSp==1).^2.*dzp(CTSp==1).*dzm(CTSp==1)))-wt(CTSp==1)./ ...
         (dzm(CTSp==1).*repH(CTSp==1))); % E(k)
     ctp(CTSp==1)=dt*((2*(Ka(CTSp==1))*par.secperyear./(repH(CTSp==1).^2.* ...
         dzp(CTSp==1).*dzc(CTSp==1)))); % E(k+1)
     atp(CTSm==1)=dt*((2*(Kb(CTSm==1))*par.secperyear./(repH(CTSm==1).^2.* ...
-        dzm(CTSm==1).*dzc(CTSm==1)))-w(CTSm==1)./(dzm(CTSm==1).*repH(CTSm==1))); % E(k-1)
+        dzm(CTSm==1).*dzc(CTSm==1)))-wt(CTSm==1)./(dzm(CTSm==1).*repH(CTSm==1))); % E(k-1)
     btp(CTSm==1)=1+dt*(((Ka(CTSm==1)+Kb(CTSm==1))*par.secperyear./ ...
-        (repH(CTSm==1).^2.*dzp(CTSm==1).*dzm(CTSm==1)))-w(CTSm==1)./ ...
+        (repH(CTSm==1).^2.*dzp(CTSm==1).*dzm(CTSm==1)))-wt(CTSm==1)./ ...
         (dzm(CTSm==1).*repH(CTSm==1))); % E(k)
     ctp(CTSm==1)=dt*((2*(Ka(CTSm==1))*par.secperyear./(repH(CTSm==1).^2.* ...
         dzp(CTSm==1).*dzc(CTSm==1)))); % E(k+1)
@@ -193,15 +196,13 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
     
     % horizontal velocities on H grid
-    uxdt=0.5*(udx+circshift(udx,[0 1]));
-    uydt=0.5*(udy+circshift(udy,[1 0]));
-    uxbt=0.5*(ubx+circshift(ubx,[0 1])); 
-    uybt=0.5*(uby+circshift(uby,[1 0]));
-    pl=repmat(pxy,[1,1,ctr.kmax]);
-    zl=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]);
-    ushllib=(pl+2)./(pl+1).*(1-zl.^(pl+1));
-    ut=repmat(uxdt,[1,1,ctr.kmax]).*ushllib+repmat(uxbt,[1,1,ctr.kmax]);
-    vt=repmat(uydt,[1,1,ctr.kmax]).*ushllib+repmat(uybt,[1,1,ctr.kmax]);
+    if ctr.SSA==3
+        [ut,vt,wt]=Velocity3dDIVA(ubx,uby,etaD,H,gradsx,gradsy, ...
+            gradHx,gradHy,Mb,Bmelt,beta2,zeta,ctr);
+    else
+        [ut,vt,wt,pl]=Velocity3d(udx,udy,ubx,uby,pxy,zeta,Mb,Bmelt,gradsx, ...
+            gradsy,gradHx,gradHy,ctr);
+    end
     
     % horizontal advection
     dEdxm=(circshift(E,[0 -1])-E)/ctr.delta;
@@ -215,16 +216,19 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     advecy(vt>0)=vt(vt>0).*dEdyp(vt>0)*dt;
     advecy(vt<0)=vt(vt<0).*dEdym(vt<0)*dt;
     
-    % vertical velocity according to Pattyn (2010) with Lliboutry shape
-    % function
-    wshllib=1-(pl+2).*zl./(pl+1)+1./(pl+1).*zl.^(pl+2);
-    w=repmat(-Mb,[1,1,ctr.kmax]).*wshllib-max(Bmelt,-5e-2)+ut.* ...
-        (repmat(gradsx,[1,1,ctr.kmax])-zl.*repmat(gradHx,[1,1,ctr.kmax])) ...
-        +vt.*(repmat(gradsy,[1,1,ctr.kmax])-zl.*repmat(gradHy,[1,1,ctr.kmax]));
-    
-    % Internal/strain heating [CHECK THIS BECAUSE CHANGED]
-    dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/(par.n+2),[1,1,ctr.kmax]).*repz.^pl; 
-    fric=par.rho.*par.g.*repmat(sqrt(gradxy),[1,1,ctr.kmax]).*repz.*dudz.*dt./par.rho;
+    if ctr.SSA==3
+        dudz=zeros(ctr.imax,ctr.jmax,ctr.kmax);
+        for k=2:ctr.kmax
+            dudz(:,:,k)=(ut(:,:,k)-ut(:,:,k-1))/(zeta(k)-zeta(k-1)).* ...
+                gradsx+(vt(:,:,k)-vt(:,:,k-1))/(zeta(k)- ...
+                zeta(k-1)).*gradsy;
+        end
+        fric=par.g*dt*repz.*dudz;
+    else
+        dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/ ...
+            (par.n+2),[1,1,ctr.kmax]).*repz.^pl;
+        fric=par.g*dt*repz.*dudz.*repmat(sqrt(gradxy),[1,1,ctr.kmax]);
+    end
     repmask=repmat(MASK,[1,1,ctr.kmax]);
     fric(repmask==0)=0; % no frictional heat in ice shelves
     extraterm=max(min((fric-advecx-advecy-DFlux),5*par.cp),-5*par.cp);
@@ -232,8 +236,8 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     % Temperature/Enthalpy solution
     repH2=repmat(H,[1,1,ctr.kmax]); repH=max(repH2,1e-8);
     % centred difference for diffusion & upstream difference for advection
-    atp=dt*((2*kdif*par.secperyear./(repH.^2.*dzm.*dzc))-w./(dzm.*repH)); % E(k-1)
-    btp=1+dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzm))-w./(dzm.*repH)); % E(k)
+    atp=dt*((2*kdif*par.secperyear./(repH.^2.*dzm.*dzc))-wt./(dzm.*repH)); % E(k-1)
+    btp=1+dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzm))-wt./(dzm.*repH)); % E(k)
     ctp=dt*((2*kdif*par.secperyear./(repH.^2.*dzp.*dzc))); % E(k+1)
 
     % basal BC at the CTS
@@ -244,43 +248,39 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
 
     for i=1:ctr.imax
         for j=1:ctr.jmax
-
             if Ht(i,j)>0  || CTSm(i,j,ctr.kmax)==1 % base is temperate
-
             % Temperature/Enthalpy solution
-            for k=ctr.kmax-1:-1:2
-                if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % for cold ice above the CTS only
-                ftp(i,j,k)=atp(i,j,k)./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
-                gtp(i,j,k)=(E(i,j,k)+extraterm(i,j,k)+ ...
-                    ctp(i,j,k).*gtp(i,j,k+1))./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
+                for k=ctr.kmax-1:-1:2
+                    if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % for cold ice above the CTS only
+                    ftp(i,j,k)=atp(i,j,k)./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
+                    gtp(i,j,k)=(E(i,j,k)+extraterm(i,j,k)+ ...
+                        ctp(i,j,k).*gtp(i,j,k+1))./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
+                    end
                 end
-            end
-
-            for k=2:ctr.kmax
-                if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % update in cold ice above the CTS
-                E(i,j,k)=E(i,j,k-1).*ftp(i,j,k)+gtp(i,j,k);
-                tmp(i,j,k)=(E(i,j,k)./par.cp)+par.Tref;
-                wat(i,j,k)=0;
-                elseif CTSm(i,j,k)==1 % impose conditions at the CTS
-                E(i,j,k)=Epmp(i,j,k);
-                tmp(i,j,k)=Tpmp(i,j,k);
-                wat(i,j,k)=0;
-                else  %  use prior guess in temperate ice
-                E(i,j,k)=E0(i,j,k);
-                tmp(i,j,k)=tmp0(i,j,k); 
-                wat(i,j,:)=max((E0(i,j,:)-Epmp(i,j,:))./par.Latent,0);
+                for k=2:ctr.kmax
+                    if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % update in cold ice above the CTS
+                        E(i,j,k)=E(i,j,k-1).*ftp(i,j,k)+gtp(i,j,k);
+                        tmp(i,j,k)=(E(i,j,k)./par.cp)+par.Tref;
+                        wat(i,j,k)=0;
+                    elseif CTSm(i,j,k)==1 % impose conditions at the CTS
+                        E(i,j,k)=Epmp(i,j,k);
+                        tmp(i,j,k)=Tpmp(i,j,k);
+                        wat(i,j,k)=0;
+                    else  %  use prior guess in temperate ice
+                        E(i,j,k)=E0(i,j,k);
+                        tmp(i,j,k)=tmp0(i,j,k); 
+                        wat(i,j,k)=max((E0(i,j,k)-Epmp(i,j,k))./par.Latent,0);
+                    end
+                    % Find if ice is cold below the CTS while it should be temperate
+                    if k>idx(i,j) && E(i,j,k)<Epmp(i,j,k)
+                        E(i,j,k)=Epmp(i,j,k);
+                    end
+                    % Find if water is present above the CTS while it should be cold
+                    if k<idx(i,j) && E(i,j,k)>Epmp(i,j,k)
+                        E(i,j,k)=Epmp(i,j,k);
+                        wat(i,j,k)=0;
+                    end
                 end
-                
-                % Find if ice is cold below the CTS while it should be temperate
-                if k>idx(i,j) && E(i,j,k)<Epmp(i,j,k)
-                E(i,j,k)=Epmp(i,j,k);
-                end
-                % Find if water is present above the CTS while it should be cold
-                if k<idx(i,j) && E(i,j,k)>Epmp(i,j,k)
-                E(i,j,k)=Epmp(i,j,k);
-                wat(i,j,k)=0;
-                end
-            end
             else % cold ice column
                E(i,j,:)=E0(i,j,:);
                tmp(i,j,:)=tmp0(i,j,:);

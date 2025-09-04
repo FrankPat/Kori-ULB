@@ -1,10 +1,9 @@
-function [tmp,Tb,zeta,dzc,dzp,dzm,E,Epmp,wat]=InitTempParams(ctr,par,tmp,Ts,H,E)
+function [tmp,Tb,dzc,dzp,dzm,E,Epmp,wat]=InitTempParams(ctr,par,zeta,tmp,Ts,H,E)
 
 % Kori-ULB
 % Initialization of vertical derivatives for temperature profiles in the 3d
 % temperature calculation
 
-    zeta=CalculateZeta(ctr.kmax,0.015);
     dzc=circshift(zeta,[0 -1])-circshift(zeta,[0 1]);
     dzp=circshift(zeta,[0 -1])-zeta;
     dzm=zeta-circshift(zeta,[0 1]);
