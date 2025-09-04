@@ -7,11 +7,9 @@ NOTE: This version is the version under development. Stable versions are availab
 
 **Features**
 
-- 2.5D Finite difference ice sheet/ice shelf model
+- 3D Finite difference ice sheet/ice shelf model
 
-- SSA-SIA hybrid velocity calculation (on Arakawa C grids)
-
-- SIA diffusive calculation (on Arakawa B-grid)
+- DIVA and SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 
 - 3D temperature and enthalpy field
 
