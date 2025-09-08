@@ -64,10 +64,9 @@
 %-----------------------------------------------------------------
 % Model Features
 %-----------------------------------------------------------------
-% -2.5D Finite difference ice sheet/ice shelf model
-% -SSA-SIA hybrid velocity calculation (on Arakawa C grids)
-% -SIA diffusive calculation (on Arakawa B-grid)
-% -3D temperature field
+% -3D Finite difference ice sheet/ice shelf model
+% -DIVA and SSA-SIA hybrid velocity calculation (on Arakawa C grids)
+% -3D temperature and/or enthalpy field
 % -Full thermomechanical coupling
 % -Local and non-local isostatic adjustment (ELRA model) with spatially
 %     varying flexural rigidity and asthenosphere viscosity

@@ -214,7 +214,7 @@ par.pmp     = 8.66e-4;                 % Clausius Clapeyron (Payne, 2000)
 par.atune   = 1;                       % tuning factor in Arrhenius (1 for n=3; 1e-5 for n=4)
 par.R       = 8.314;                   % gas constant
 par.udfrac  = 0.25;
-par.intT    = 10;                      % number of iterations for which tmp is calculated
+par.intT    = 1;                      % number of iterations for which tmp is calculated
 par.TrTemp  = -10;                     % Basal temperature for which ice is frozen to bed
 par.Q1      = 78.2e3;                  % Arrhenius parameters from Ritz (1992)
 par.Q2      = 95.45e3;
