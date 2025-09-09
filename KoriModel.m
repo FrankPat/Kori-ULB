@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                 Kori-ULB: The ULB ice flow model                      %
 %                                                                       %
-%                     Version 0.92 August 2025                          %
+%                   Version 0.92 September 2025                         %
 %                                                                       %
 %                           Frank Pattyn                                %
 %                    Laboratoire de Glaciologie                         %
@@ -161,6 +161,10 @@ default=InitDefault;
 % Impossible combination of parameters
 if ctr.SSA==0 && ctr.shelf==1
     fprintf('If shelf=1, then SSA>0\n');
+    return;
+end
+if ctr.SSA==0 && ctr.schoof==1
+    fprintf('If schoof=1, then SSA>0\n');
     return;
 end
 
@@ -601,8 +605,7 @@ for cnt=cnt0:ctr.nsteps
         uxsch=ux;
         uysch=uy;
     end
-    [uxsch,uysch,d]=DiffusiveCorrection(ctr,par,uxsch,uysch,udx,udy, ...
-        d,Ad,p,Hm,gradm,bMASK);
+    [uxsch,uysch,d]=DiffusiveCorrection(ctr,par,uxsch,uysch,d,bMASK);
 
 %------------------------------------------------------------------
 % Define distance to open ocean for calving and sub-shelf melting
