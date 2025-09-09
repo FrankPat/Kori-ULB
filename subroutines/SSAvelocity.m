@@ -190,10 +190,6 @@ function [uxssa,uyssa,beta2,eta,etaD,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
     uyssa=min(max(-par.maxspeed,uyssa),par.maxspeed);
     ux=uxssa;
     uy=uyssa;
-    if ctr.SSAdiffus==2 % SSA as basal velocity only
-        ux=ux+udx;
-        uy=uy+udy;
-    end
     if ctr.SSA==1 % basal sliding velocity SSA
         ubx=ux;
         uby=uy;

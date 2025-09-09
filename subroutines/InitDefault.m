@@ -33,8 +33,6 @@ function default=InitDefault
     default.Asin=1e-10;
     default.Hcrit=200; % PD16
     default.taulim=0.15e6;
-    default.tauice=1e-8; % minimum yield strength [Pa] that accounts for
-        % the fact that ice maintains - Javi: 0.25e6
     default.OceanVisc=1.0e8;
 end
 

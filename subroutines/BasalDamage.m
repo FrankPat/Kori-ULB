@@ -26,8 +26,6 @@ function db=BasalDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
     else
         db=zeros(ctr.imax,ctr.jmax); % Initialize to zeros
     end
-    db(tau1<ctr.tauice)=0; % no damage if yield strength of ice is not reached
-    % db cannot be larger than ice thickness
     db=max(0,min(db,H));
 
 end

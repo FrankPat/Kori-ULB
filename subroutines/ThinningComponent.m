@@ -19,7 +19,7 @@ function ThinComp=ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H, ...
     ThinComp=max(H,1e-5).*n_star.*(1-So).*lambda1;
 
     % no thinning if no local nor transported damage
-    ThinComp(damage==0 | tau1<ctr.tauice)=0;
+    ThinComp(damage==0)=0;
     if ctr.basin==1
         ThinComp(bMASK==1)=0;
     end

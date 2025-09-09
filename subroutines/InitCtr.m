@@ -5,9 +5,6 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
 % When not defined a priori, default values are assumed
 
     ctr.plotH(any(ismember(fields(ctr),'plotH'))==0)=0;
-    ctr.SSAdiffus(any(ismember(fields(ctr),'SSAdiffus'))==0)=0;
-        % (1) Use diffusion for deformational velocity in SSA=2
-        % (2) idem, but hybrid model is addition of SSA (sliding) and deformational velocity
     ctr.runmode(any(ismember(fields(ctr),'runmode'))==0)=0;
     ctr.restart(any(ismember(fields(ctr),'restart'))==0)=0;
     ctr.diagnostic(any(ismember(fields(ctr),'diagnostic'))==0)=0;
@@ -76,7 +73,6 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
         ctr.SFdam(any(ismember(fields(ctr),'SFdam'))==0)=0;
         ctr.BSdam(any(ismember(fields(ctr),'BSdam'))==0)=0;
     end
-    ctr.tauice(any(ismember(fields(ctr),'tauice'))==0)=default.tauice;
     ctr.OceanVisc(any(ismember(fields(ctr),'OceanVisc'))==0)=default.OceanVisc;
     if any(ismember(fields(ctr),'gammaT'))==0
         if ctr.meltfunc==1

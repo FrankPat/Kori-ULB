@@ -14,11 +14,6 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
 
     limit=1e-5; % limit on effective viscosity gradients
 
-    if ctr.SSAdiffus==2
-        udx=zeros(ctr.imax,ctr.jmax);
-        udy=zeros(ctr.imax,ctr.jmax);
-    end
-    
     magh=max(sqrt(u.^2+v.^2),1e-10); % velocity magnitude on h-grid
     angle=atan2(v./magh,u./magh);
     nx=cos(angle);

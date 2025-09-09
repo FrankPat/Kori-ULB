@@ -31,8 +31,6 @@ function ds=SurfaceDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H)
     else
         ds=zeros(ctr.imax,ctr.jmax);
     end
-    ds(tau1<ctr.tauice)=0; % no damage if yield strength of ice is not reached
-    % ds cannot be larger than ice thickness
     ds=max(0,min(ds,H));
 
 end
