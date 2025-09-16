@@ -7,7 +7,7 @@ NOTE: This version is the version under development. Previous versions are avail
 
 **Features**
 
-- 3D Finite difference ice sheet/ice shelf model
+- 2.5D Finite difference ice sheet/ice shelf model
 
 - DIVA and SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 
