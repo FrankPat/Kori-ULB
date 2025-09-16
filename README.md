@@ -27,7 +27,7 @@ NOTE: This version is the version under development. Stable versions are availab
 
 - PICO/PICOP/Plume ocean model for sub-shelf melt calculation
 
-- Calving, hydrofracturing and damage
+- Calving with LSF function, hydrofracturing and damage
 
 - Subglacial hydrology and till deformation
 
