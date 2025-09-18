@@ -45,7 +45,7 @@ par.maxspeed   = 40e3;       % maximum ice speed limit (m/a)
 par.omega      = 2.5;        % Crank-Nicolson scale factor (0=explicit; 1=implicit; >1 over-implicit)
 par.secperyear = 31556926;
 % 2d variables to be saved when timeslice=1
-par.varlist    = {'MASK','H','B','ux','uy','flux','Tbc','SLR','Neff','Melt'};
+par.varlist    = {'MASK','H','B','ux','uy','Tbc','SLR','Neff','Melt'};
 
 %-----------------------------------
 % Subglacial characteristics
@@ -67,8 +67,8 @@ par.e0               = 0.69;                    % reference void ratio at N0(Tul
 par.N0               = 1e3;                     % reference effective pressure (Tulaczyk et al., 2000a)
 par.sigmat           = 0.02;                    % Ntil lower bound, as fraction of overburden pressure
 par.convWdwPhi       = 1;                       % convolution window for phi
-par.distChannels     = 10*1e+3;                 % distance between channels/canals
-par.effectHydroLimit = 5*1e-4;                  % limit for the effect of hydrology
+par.distChannels     = 1e4;                     % distance between channels/canals
+par.effectHydroLimit = 5e-4;                    % limit for the effect of hydrology
 par.FactDefTill      = 1.1;                     % till deformation factor
 par.alpha            = 5/4;                     % Darcy-Weisbach exponent
 par.beta             = 3/2;                     % Darcy-Weisbach exponent
@@ -97,8 +97,6 @@ end
 par.Hiter        = 20;                       % max iteration number for iterative thickness solver (20)
 par.Htol         = 1e-6;                     % tolerance for iterative thickness solver (1e-6)
 par.Z            = 2*(par.g*par.rho)^par.n;  % SIA isothermal pre-term
-par.dlim         = 0.9;                      % Limit on local crevasses depth (% of H)
-par.damlim       = 0.9;                      % limit on total damage (% of H)
 
 %-----------------------------------
 % Ice-ocean interactions
@@ -156,14 +154,13 @@ par.beta_coeff_lazero  = 7.86e-4;  % psu-1 Haline contraction coefficient
 %-----------------------------------
 
 par.LSFReset     = 30;
-% PD12 calving scheme (ctr.calving=3)
-par.MinCalvThick = 30;
-par.MaxCalvRate  = 3e5;
-% PD15 calving scheme (ctr.calving=4)
+par.MinCalvThick = 30;     % PD12 calving scheme (ctr.calving=3)
+% par.MaxCalvRate  = 3e5;    % PD15 calving scheme (ctr.calving=4)
 par.MaxCalvRate  = 3000;
 par.CritCrevasse = 0.75;
 par.Ucrit1       = 1600;
 par.Ucrit2       = 1900;
+par.damlim       = 0.9;    % limit on total damage (% of H)
 
 %-----------------------------------
 % Isostasy
@@ -214,14 +211,12 @@ par.pmp     = 8.66e-4;                 % Clausius Clapeyron (Payne, 2000)
 par.atune   = 1;                       % tuning factor in Arrhenius (1 for n=3; 1e-5 for n=4)
 par.R       = 8.314;                   % gas constant
 par.udfrac  = 0.25;
-par.intT    = 1;                      % number of iterations for which tmp is calculated
 par.TrTemp  = -10;                     % Basal temperature for which ice is frozen to bed
 par.Q1      = 78.2e3;                  % Arrhenius parameters from Ritz (1992)
 par.Q2      = 95.45e3;
 par.a1      = 1.66e-16;
 par.a2      = 2e-16;
 par.Tref    = 223.15;                  % Kleiner (2015); Rueckamp (2020)
-par.atune   = 1.0; % tuning factor in Arrhenius
 par.a1D     = 3.985e-13*par.secperyear; % Greve and Blatter (correction from Huybrechts)
 par.a2D     = 1.916e3*par.secperyear;
 par.Q1D     = 60e3;

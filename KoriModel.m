@@ -64,7 +64,7 @@
 %-----------------------------------------------------------------
 % Model Features
 %-----------------------------------------------------------------
-% -3D Finite difference ice sheet/ice shelf model
+% -2.5D Finite difference ice sheet/ice shelf model
 % -DIVA and SSA-SIA hybrid velocity calculation (on Arakawa C grids)
 % -3D temperature and/or enthalpy field
 % -Full thermomechanical coupling
@@ -75,7 +75,7 @@
 % -Nudging method to determine spatially-varying basal slip coefficients
 % -Nudging method to optimize sub-shelf mass balance for steady-state
 % -PICO/PICOP/Plume ocean model for sub-shelf melt calculation
-% -Calving, hydrofracturing and damage
+% -Calving with LSF function, hydrofracturing and damage
 % -Subglacial hydrology and till deformation
 % -PDD model for surface melt
 % -Colorblind-friendly output figures
@@ -286,7 +286,7 @@ if ctr.Tcalc>=1
         Hw=zeros(size(Tb));
         Dfw=zeros(size(E));
         if ctr.Tinit==0
-            Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*par.intT,par.Wmax));
+            Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*ctr.intT,par.Wmax));
             wat=max(0,(E-Epmp)/par.Latent);
             [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
         end
@@ -435,10 +435,6 @@ for cnt=cnt0:ctr.nsteps
     if Mb_update==0
         Mb=Pr-Evp-runoff; 
     end
-    if ctr.PDDcalc==1 && ctr.PDD_anomaly==1
-        aMb=Mb-fc.Mbref;
-        Mb=Mb0+aMb;
-    end
 
 %------------------------------------------------------
 % Geometry on staggered grids and grounding-line MASK
@@ -501,13 +497,13 @@ for cnt=cnt0:ctr.nsteps
                     if ctr.Enthalpy==1
                         [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
                             Enthalpy3d(par,ctr,E,Mb,Ts,G,A,H,pxy, ...
-                            ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                            ctr.dt*ctr.intT,gradsx,gradsy,gradHx,gradHy, ...
                             gradxy,taudxy,udx,udy,vec2h(uxssa,uyssa), ...
                             uxssa,uyssa,zeta,dzc,dzm,dzp,fc.DeltaT,MASK, ...
                             Bmelt,Epmp,CTSm,CTSp,Hw,Ht,Dbw,Dfw,etaD,beta2,cnt);
                     else
                         [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-                            ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                            ctr,ctr.dt*ctr.intT,gradsx,gradsy,gradHx,gradHy, ...
                             udx,udy,vec2h(uxssa,uyssa),uxssa,uyssa,zeta, ...
                             gradxy,H,dzc,dzm,dzp,G,taudxy, ...
                             A,fc.DeltaT,MASK,Bmelt,etaD,beta2,cnt);
@@ -518,13 +514,13 @@ for cnt=cnt0:ctr.nsteps
                     if ctr.Enthalpy==1
                         [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
                             Enthalpy3d(par,ctr,E,Mb,Ts,G,A,H,pxy, ...
-                            ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                            ctr.dt*ctr.intT,gradsx,gradsy,gradHx,gradHy, ...
                             gradxy,taudxy,udx,udy,ub,ubx,uby,zeta,dzc, ...
                             dzm,dzp,fc.DeltaT,MASK,Bmelt,Epmp,CTSm,CTSp, ...
                             Hw,Ht,Dbw,Dfw,etaD,beta2,cnt);
                     else
                         [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
-                            ctr,ctr.dt*par.intT,gradsx,gradsy,gradHx,gradHy, ...
+                            ctr,ctr.dt*ctr.intT,gradsx,gradsy,gradHx,gradHy, ...
                             udx,udy,ub,ubx,uby,zeta,gradxy,H,dzc,dzm,dzp, ...
                             G,taudxy,A,fc.DeltaT,MASK,Bmelt,etaD,beta2,cnt);
                         Bmelt=BasalMelting(ctr,par,G,taudxy,ub,H,tmp,dzm,MASK);
@@ -645,7 +641,10 @@ for cnt=cnt0:ctr.nsteps
         Melt=zeros(ctr.imax,ctr.jmax);
         Melt(MASK==0)=ctr.meltfac;
     end
-    if ctr.inverse==2 && cnt>1
+    if ctr.inverse==2
+        if islogical(MeltInv)
+            MeltInv=zeros(ctr.imax,ctr.jmax);
+        end
         Melt=MeltInv;
     end
 
@@ -704,7 +703,7 @@ for cnt=cnt0:ctr.nsteps
     if cntT==1 && ctr.BedAdj>0
         bload=BedrockAdjustment(ctr,par,load0,MASK,Hn,B,SLR,Db,VM, ...
             node,nodes,frb,kei,Ll);
-        Bn=(B-B0+bload)*ctr.dt*par.intT./(-Btau)+B;
+        Bn=(B-B0+bload)*ctr.dt*ctr.intT./(-Btau)+B;
     end
 
 %-----------------------------------------------------------------
@@ -850,7 +849,7 @@ for cnt=cnt0:ctr.nsteps
 % Save intermediate output
 %------------------------------------
 
-    cntT(cntT>=par.intT)=0;
+    cntT(cntT>=ctr.intT)=0;
     oldMASK=MASK;
     if ctr.runmode==1 || ctr.runmode==3 || ctr.runmode==5
         if rem(cnt-1,plotst)==0 && cnt>1
