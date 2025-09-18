@@ -46,7 +46,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.PDDcalc(any(ismember(fields(ctr),'PDDcalc'))==0)=0;
     ctr.monthly(any(ismember(fields(ctr),'monthly'))==0)=0;
     ctr.runoffcorr(any(ismember(fields(ctr),'runoffcorr'))==0)=0;
-    ctr.PDD_anomaly(any(ismember(fields(ctr),'PDD_anomaly'))==0)=0;
+    ctr.intT(any(ismember(fields(ctr),'intT'))==0)=default.intT;
     ctr.Hinv(any(ismember(fields(ctr),'Hinv'))==0)=default.Hinv;
     ctr.Tinv(any(ismember(fields(ctr),'Tinv'))==0)=default.Tinv;
     ctr.stopoptim(any(ismember(fields(ctr),'stopoptim'))==0)=default.stopoptim;

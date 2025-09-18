@@ -11,6 +11,7 @@ function default=InitDefault
     default.Ao=1.0e-16;
     default.m=1;
     default.kmax=11;
+    default.intT=10;
     default.Hinv=500;
     default.Tinv=200;
     default.stopoptim=0.1;

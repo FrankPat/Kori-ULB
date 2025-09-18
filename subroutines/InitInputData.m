@@ -15,7 +15,6 @@ function [As,Mb0,Ts0,MASK0,MASK,bMASK,H,B,H0,B0]= ...
         bMASK(MASKo==-1)=1;
         MASK(bMASK==1)=1;
         As(bMASK==1)=par.As0;
-        par.intT=1; % calculate temperature at each time step
         H(1,:)=H(2,:);
         B(1,:)=B(2,:);
         H(ctr.imax,:)=H(ctr.imax-1,:);
