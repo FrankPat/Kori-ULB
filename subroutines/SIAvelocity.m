@@ -3,7 +3,7 @@ function [d,udx,udy,ud,ubx,uby,ub,uxsia,uysia,p,pxy]= ...
     H,Hm,Hmx,Hmy,gradm,gradmx,gradmy,gradxy,signx,signy,MASK,p,px,py,pxy)
 
 % Kori-ULB
-% Deformationald and basal velocity according to the shallow-ice
+% Deformational and basal velocity according to the shallow-ice
 % approximation. Parameters for the thermomechanical coupling are also
 % defined based on basal temperature gradients.
 
@@ -27,10 +27,8 @@ function [d,udx,udy,ud,ubx,uby,ub,uxsia,uysia,p,pxy]= ...
         gradm.^((ctr.m-1.)/2.)./ds;
     udx=par.Z*Ax./(px+2).*signx.*Hmx.^(par.n+1.).*gradmx.^(par.n/2.);
     udy=par.Z*Ay./(py+2).*signy.*Hmy.^(par.n+1.).*gradmy.^(par.n/2.);
-    ud=par.Z*A./(pxy+2).*H.^(par.n+1.).*gradxy.^(par.n/2.); 
-    % only used for temperature (on h-grid)
+    ud=par.Z*A./(pxy+2).*H.^(par.n+1.).*gradxy.^(par.n/2.);
     ubx=Asfx.*signx.*(par.rho*par.g*Hmx).^ctr.m.*gradmx.^(ctr.m/2.); 
-    % only for temperature
     uby=Asfy.*signy.*(par.rho*par.g*Hmy).^ctr.m.*gradmy.^(ctr.m/2.);
     uxsia=min(max(-par.maxspeed,udx+ubx),par.maxspeed);
     uysia=min(max(-par.maxspeed,udy+uby),par.maxspeed);
