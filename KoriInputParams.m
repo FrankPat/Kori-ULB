@@ -160,7 +160,6 @@ par.MaxCalvRate  = 3000;
 par.CritCrevasse = 0.75;
 par.Ucrit1       = 1600;
 par.Ucrit2       = 1900;
-par.damlim       = 0.9;    % limit on total damage (% of H)
 
 %-----------------------------------
 % Isostasy
