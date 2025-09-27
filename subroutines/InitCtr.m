@@ -73,6 +73,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
         ctr.SFdam(any(ismember(fields(ctr),'SFdam'))==0)=0;
         ctr.BSdam(any(ismember(fields(ctr),'BSdam'))==0)=0;
     end
+    ctr.damlim(any(ismember(fields(ctr),'damlim'))==0)=default.damlim;
     ctr.OceanVisc(any(ismember(fields(ctr),'OceanVisc'))==0)=default.OceanVisc;
     if any(ismember(fields(ctr),'gammaT'))==0
         if ctr.meltfunc==1

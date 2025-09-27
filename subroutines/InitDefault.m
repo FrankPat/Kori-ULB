@@ -34,6 +34,7 @@ function default=InitDefault
     default.Asin=1e-10;
     default.Hcrit=200; % PD16
     default.taulim=0.15e6;
+    default.damlim=0.9; % limit on total damage (% of H)
     default.OceanVisc=1.0e8;
 end
 

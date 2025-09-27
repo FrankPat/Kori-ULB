@@ -1,5 +1,5 @@
 function [eta,etaD,dudx,dvdy,dudy,dvdx]=EffViscDIVA(A3d,betax,betay,ubx,uby, ...
-    etaD,H,damage,uxssa,uyssa,zeta,MASK,glMASK,shelftune,ctr,par)
+    etaD,H,H0,damage,uxssa,uyssa,zeta,MASK,glMASK,shelftune,ctr,par)
 
 % Kori-ULB
 % Effective viscosity of the DIVA solution. On the borders of the domain, a
@@ -37,7 +37,10 @@ function [eta,etaD,dudx,dvdy,dudy,dvdx]=EffViscDIVA(A3d,betax,betay,ubx,uby, ...
     EffStrD=max(EffStrD,1e-12);
     
     % Include damage in the calculation of ice viscosity
-    scale_eta=((H-min(min(H.*par.damlim,damage),H-eps))./(H+eps)).^(-par.n);
+    scale_eta=((H-min(min(H.*ctr.damlim,damage),H-eps))./(H+eps)).^(-par.n);
+    if ctr.damexist==1 && ctr.damage==0
+        scale_eta=(H0-min(min(H0.*ctr.damlim,damage),H0-eps))./(H0+eps);
+    end
     Astar=A3d.*repmat(scale_eta,[1,1,ctr.kmax]);
     etaD=0.5*Astar.^(-1./par.n).*EffStrD.^((1-par.n)/(2*par.n));
     

@@ -1,4 +1,4 @@
-function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
+function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,H0,par,MASK, ...
     glMASK,shelftune,damage,ctr)
 
 % Kori-ULB
@@ -11,7 +11,10 @@ function [eta,dudx,dvdy,dudy,dvdx]=EffVisc(A,uxssa,uyssa,H,par,MASK, ...
 
     EffStr=dudx.^2+dvdy.^2+dudx.*dvdy+0.25*(dudy+dvdx).^2;
     EffStr=max(EffStr,1e-12);
-    scale_eta=(H-min(min(H.*par.damlim,damage),H-eps))./(H+eps);
+    scale_eta=(H-min(min(H.*ctr.damlim,damage),H-eps))./(H+eps);
+    if ctr.damexist==1 && ctr.damage==0
+        scale_eta=(H0-min(min(H0.*ctr.damlim,damage),H0-eps))./(H0+eps);
+    end
     Astar=A.*scale_eta.^(-par.n);
     eta=0.5*H.*Astar.^(-1./par.n).*EffStr.^((1-par.n)/(2*par.n));
     eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
