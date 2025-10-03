@@ -85,12 +85,10 @@ function [uxssa,uyssa,beta2,eta,etaD,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
                         ThinComp=ThinningComponent(ctr,par,dudx,dvdy, ...
                             dudy,dvdx,eta,H,damage,bMASK,glMASK);
                     end
-                    SuM=Mb; BoM=Melt;
-                    if ctr.SFdam==0
-                        SuM=SuM*0;
-                    end
-                    if ctr.BSdam==0
-                        BoM=BoM*0;
+                    if ctr.HLdam==1
+                        SuM=Mb; BoM=Melt;
+                    else
+                        SuM=0; BoM=0;
                     end
                     dtr=TransportDamage(node,nodes,damage,SuM, ...
                         BoM,ThinComp,H,glMASK,dtdx,dtdx2, ...
