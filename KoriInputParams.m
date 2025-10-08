@@ -236,6 +236,8 @@ par.Tlapse    = -0.008;      % Lapse rate for temperature correction with height
 par.Tsigma    = 4;           % standard deviation of mean T for PDD calculation
 par.Psigma    = 3.5;         % standard deviation of mean T for rain factor calculation
 par.PDDsteps  = 48;
+par.Prfac     = 0.053;       % sensitivity factor: precipitation change with temperature
+                             % Golledge et al. (2015): 0.053 -- fit to CMIP5 data
 
 %-----------------------------------
 % Basin model parameters
