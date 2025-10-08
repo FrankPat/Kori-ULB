@@ -13,10 +13,10 @@ function [Pr,Evp,runoff]=MbFunc(ctr,par,Prf,Evpf,runoff,runofff,Tsf,sn,S0,X,Y,Lj
                 runoff=runofff;
             end
         case 1
-            % Correction for elevation changes - OPTION 1 
-            % Pollard et al., Garbe2020 - correction of precipitation for
-            % elevation changes and change in background temperature
-            Pr=Prf.*exp(0.05*(par.Tlapse*(max(sn,DeltaSL)-S0)+DeltaT));
+            % Correction for elevation changes - OPTION 1
+            % correction of precipitation for changes in background temperature
+            % Clausius-Clapeyron relationship
+            Pr=Prf.*(1+par.Prfac).^DeltaT;
             if ctr.PDDcalc==0
                 if ctr.runoffcorr==1 % option to correct externally-forced runoff field for elevation change
                     runoff=runofff+1.805*(exp(0.5745*(Tsf+par.Tlapse*(max(sn,DeltaSL)-S0)))-exp(0.5745*Tsf)); % inferred from MAR monthly data: runoff=1.805*exp(0.5745*t2m)
@@ -26,10 +26,10 @@ function [Pr,Evp,runoff]=MbFunc(ctr,par,Prf,Evpf,runoff,runofff,Tsf,sn,S0,X,Y,Lj
             end
             Evp=Evpf; % Evp not corrected for elevation change
         case 2
-            % Correction for elevation changes - OPTION 2
-            % Golledge 2015 (future runs, see Frieler) - correction of precipitation for
+            % Correction for elevation changes - OPTION 1 
+            % Pollard et al., Garbe2020 - correction of precipitation for
             % elevation changes and change in background temperature
-            Pr=Prf.*(1+0.053*(par.Tlapse*(max(sn,DeltaSL)-S0)+DeltaT));
+            Pr=Prf.*exp(0.05*(par.Tlapse*(max(sn,DeltaSL)-S0)+DeltaT));
             if ctr.PDDcalc==0
                 if ctr.runoffcorr==1 % option to correct externally-forced runoff field for elevation change
                     runoff=runofff+1.805*(exp(0.5745*(Tsf+par.Tlapse*(max(sn,DeltaSL)-S0)))-exp(0.5745*Tsf)); % inferred from MAR monthly data: runoff=1.805*exp(0.5745*t2m)
