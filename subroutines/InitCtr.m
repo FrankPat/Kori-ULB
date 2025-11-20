@@ -56,7 +56,6 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.snapshot(any(ismember(fields(ctr),'snapshot'))==0)=default.snapshot;
     ctr.BetaIter(any(ismember(fields(ctr),'BetaIter'))==0)=default.BetaIter;
     ctr.shelftune(any(ismember(fields(ctr),'shelftune'))==0)=default.shelftune;
-    ctr.meltfactor(any(ismember(fields(ctr),'meltfactor'))==0)=default.meltfactor;
     ctr.Ao(any(ismember(fields(ctr),'Ao'))==0)=default.Ao;
     ctr.u0(any(ismember(fields(ctr),'u0'))==0)=default.u0;
     ctr.plotGL(any(ismember(fields(ctr),'plotGL'))==0)=default.plotGL;
@@ -98,6 +97,9 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     
     if any(ismember(fields(fc),'DeltaT'))==0
         fc.DeltaT=zeros(ctr.nsteps,1);
+    end
+    if any(ismember(fields(fc),'DeltaTo'))==0
+        fc.DeltaTo=zeros(ctr.nsteps,1);
     end
     if any(ismember(fields(fc),'DeltaSL'))==0
         fc.DeltaSL=zeros(ctr.nsteps,1);

@@ -24,6 +24,8 @@ function ThinComp=ThinningComponent(ctr,par,dudx,dvdy,dudy,dvdx,eta,H, ...
         ThinComp(bMASK==1)=0;
     end
     ThinComp(glMASK==6)=0;
+    % no thinning component on grounded ice
+    ThinComp(glMASK<3)=0;
 end
 
 

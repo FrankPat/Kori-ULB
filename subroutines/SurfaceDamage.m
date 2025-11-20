@@ -14,12 +14,14 @@ function ds=SurfaceDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H)
     % convert strain to stress -- note that eta is the vertically integrated viscosity
     % hence, the ice thickness is considered in there
     tau1=2*lambda1.*eta./(H+eps);
+    tau2=2*lambda2.*eta./(H+eps);
+    Rxx=2*tau1+tau2;
 
     dw=zeros(ctr.imax,ctr.jmax); % Water depth in the surface crevasse (Sun2017, Nick2010) -- TO DO!
     if ctr.SFdam==1
-        ds=tau1./(par.rho*par.g)+par.rhow.*dw/par.rho;
+        ds=Rxx./(par.rho*par.g)+par.rhow.*dw/par.rho;
     elseif ctr.SFdam==2
-        ds=pi*0.5*tau1./(par.rho*par.g)+par.rhow*dw/par.rho;
+        ds=pi*0.5*Rxx./(par.rho*par.g)+par.rhow*dw/par.rho;
     elseif ctr.SFdam==3
         alpha=lambda2./lambda1;
         ds=ds.*(2+alpha);

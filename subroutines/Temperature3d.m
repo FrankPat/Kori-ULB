@@ -1,6 +1,6 @@
 function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     ctr,dt,gradsx,gradsy,gradHx,gradHy,udx,udy,ub,ubx,uby,zeta,gradxy,H, ...
-    dzc,dzm,dzp,G,taudxy,A,DeltaT,MASK,Bmelt,etaD,beta2,cnt)
+    dzc,dzm,dzp,G,taudxy,A,DeltaT,DeltaTo,MASK,Bmelt,etaD,beta2,cnt)
 
 % Kori-ULB
 % 3d englacial temperature calculation in ice sheet and ice shelves
@@ -66,7 +66,7 @@ function [tmp,ctr]=Temperature3d(tmp,Mb,Ts,pxy,par, ...
     mask(MASK==0)=1;
     repmask=repmat(mask,[1,1,ctr.kmax]);
     repmask(:,:,1:ctr.kmax-1)=0;
-    TBshelf=par.T0+repmat(min(par.Toi+ctr.meltfactor*DeltaT(cnt)- ...
+    TBshelf=par.T0+repmat(min(par.Toi+DeltaTo(cnt)- ...
         0.12e-3*par.rho*H/par.rhow,0),[1,1,ctr.kmax]);
     ftp(repmask==1)=0;
     gtp(repmask==1)=TBshelf(repmask==1);

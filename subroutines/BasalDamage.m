@@ -14,11 +14,13 @@ function db=BasalDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
     % convert strain to stress -- note that eta is the vertically integrated viscosity
     % hence, the ice thickness is considered in there
     tau1=2*lambda1.*eta./(H+eps);
+    tau2=2*lambda2.*eta./(H+eps);
+    Rxx=2*tau1+tau2;
 
     if ctr.BSdam==1
-        db=(par.rho/(par.rhow-par.rho))*((tau1./(par.rho*par.g))-max(HAF,0));
+        db=(par.rho/(par.rhow-par.rho))*((Rxx./(par.rho*par.g))-max(HAF,0));
     elseif ctr.BSdam==2
-        db=(par.rho/(par.rhow-par.rho))*((pi*0.5*tau1./(par.rho*par.g))-max(HAF,0));
+        db=(par.rho/(par.rhow-par.rho))*((pi*0.5*Rxx./(par.rho*par.g))-max(HAF,0));
     elseif ctr.BSdam==3
         alpha=lambda2./lambda1;
         db=db.*(2+alpha);

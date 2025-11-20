@@ -1,4 +1,4 @@
-function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
+function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,time,cnt,So0, ...
     To0,Tof,Sof,TFf,cnt_ocn,snp_ocn)
 
 % Kori-ULB
@@ -14,7 +14,7 @@ function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
                 if any(ismember(fields(fc),'ocn_TF_fname'))
                     load([fc.ocn_TF_fname,num2str(snp_ocn,'%03i')]);
                     TFf=double(TF); % make sure matrix is double
-                    Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                    Tof=To0+fc.DeltaTo(cnt); 
                     % simplified forcing otherwise
                     Sof=So0;
                 else % If TF forcing does not exist, check for To or So forcing
@@ -23,7 +23,7 @@ function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
                         load([fc.ocn_To_fname,num2str(snp_ocn,'%03i')]);
                         Tof=double(To); % make sure matrix is double
                     else
-                        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                        Tof=To0+fc.DeltaTo(cnt); 
                         % simplified forcing otherwise
                     end
                     if any(ismember(fields(fc),'ocn_So_fname'))
@@ -42,7 +42,7 @@ function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
                 if any(ismember(fields(fc),'ocn_TF_fname'))
                     load([fc.ocn_TF_fname,num2str(snp_ocn,'%03i')]);
                     TFf=double(TF); % make sure matrix is double
-                    Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                    Tof=To0+fc.DeltaTo(cnt); 
                     % simplified forcing otherwise
                     Sof=So0;
                 else % If TF forcing does not exist, check for To or So forcing
@@ -51,7 +51,7 @@ function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
                         load([fc.ocn_To_fname,num2str(snp_ocn,'%03i')]);
                         Tof=double(To); % make sure matrix is double
                     else
-                        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); 
+                        Tof=To0+fc.DeltaTo(cnt); 
                         % simplified forcing otherwise
                     end
                     if any(ismember(fields(fc),'ocn_So_fname'))
@@ -68,7 +68,7 @@ function [Tof,Sof,TFf,cnt_ocn,snp_ocn]=OCEANupdate(fc,ctr,time,cnt,So0, ...
         cnt_ocn(cnt_ocn>fc.ocn_cnt)=1;
     else
         TFf=false;
-        Tof=To0+ctr.meltfactor*fc.DeltaT(cnt); % simplified forcing otherwise
+        Tof=To0+fc.DeltaTo(cnt); % simplified forcing otherwise
         Sof=So0;
     end
 

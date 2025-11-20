@@ -28,7 +28,6 @@ function default=InitDefault
     default.gammaTplume=5.9e-4;
     default.E0=3.6e-2;
     default.M0picop=10;
-    default.meltfactor=0.3;
     default.G0=0.042;
     default.u0=1e12;
     default.Asin=1e-10;
