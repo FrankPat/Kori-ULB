@@ -1,26 +1,26 @@
-function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
+function [E,Epmp,wat,CTSm,CTSp,Dbw,Dfw,Ht,tmp]= ...
     Enthalpy3d(par,ctr,E,Mb,Ts,G,A,H, ...
     pxy,dt,gradsx,gradsy,gradHx,gradHy,gradxy,taudxy, ...
     udx,udy,ub,ubx,uby,zeta,dzc,dzm,dzp,DeltaT,MASK, ...
-    Bmelt,Epmp,CTSm,CTSp,Hw,Ht,Dbw,Dfw,etaD,beta2,cnt)
+    Bmelt,CTSm,CTSp,Hw,Ht,Dbw,Dfw,etaD,beta2,cnt)
 
 % Kori-ULB
 % 3d englacial enthalpy calculation in ice sheet and ice shelves
  
-    % ice diffusivity
-    kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp));
+    % surface BC
+    E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
+
+    % Enthalpy at pressure melting point
     repz=repmat(reshape(zeta,1,1,ctr.kmax),[ctr.imax,ctr.jmax,1]); 
     repH=max(repmat(H,[1,1,ctr.kmax]),1e-8);
     repH2=repmat(H,[1,1,ctr.kmax]);
-
-    % Enthalpy at pressure melting point
     Tp=par.pmp*repH2.*repz;
     Tpmp=par.T0-Tp;
     Epmp=par.cp*(Tpmp-par.Tref);
 
-    % surface BC
-    E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
-    
+    % ice diffusivity
+    kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp));
+        
     % Drain excess englacial water computed at previous time step
     if ctr.drain>0
         DFlux=(par.rhof./par.rho).*Dfw.*par.Latent; 
@@ -148,21 +148,6 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     end
     c3=ceil(par.rhom/par.rho)*10+ceil(par.rhow/par.rho);
     ctr.runmode(DeltaT(cnt)==c3)=5;
-
-    % use analytical solution at the domain boundary when using basins
-    nMASK=zeros(size(MASK));
-    if ctr.basin==1
-        nMASK(1,:)=1;
-        nMASK(ctr.imax,:)=1;
-        nMASK(:,1)=1;
-        nMASK(:,ctr.jmax)=1;
-    end
-    if ctr.mismip>0
-        E(:,1,:)=E(:,3,:);
-        E(:,end,:)=E(:,end-1,:);
-        E(1,:,:)=E(3,:,:);
-        E(end,:,:)=E(end-2,:,:);
-    end
         
     % OR: function that calculate CTS position + temperate layer thickness
     [CTSm,CTSp,Ht,E,idx]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
@@ -184,25 +169,17 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     % ENTM scheme in Greve & Blatter, 2015, 2016
     % ---------------------------------------------------------------------
 
-    tmp0=tmp; % prior guess temperature
     E0=E;     % prior guess enthalpy
+    tmp0=tmp; % prior guess temperature
+    wat0=wat; % prior guess water content
+
+    % surface BC
+    E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
     
     % ice diffusivity
     kdif=(par.Kc./par.rho)+(((par.K0-par.Kc)/par.rho)*heaviside(E-Epmp));
     Kc=par.K./par.cp; kdif(E<Epmp)=Kc./par.rho;
     kdif(E>=Epmp)=par.K0./par.rho;
-
-    % surface BC
-    E(:,:,1)=par.cp*(Ts+par.T0-par.Tref);
-    
-    % horizontal velocities on H grid
-    if ctr.SSA==3
-        [ut,vt,wt]=Velocity3dDIVA(ubx,uby,etaD,H,gradsx,gradsy, ...
-            gradHx,gradHy,Mb,Bmelt,beta2,zeta,ctr);
-    else
-        [ut,vt,wt,pl]=Velocity3d(udx,udy,ubx,uby,pxy,zeta,Mb,Bmelt,gradsx, ...
-            gradsy,gradHx,gradHy,ctr);
-    end
     
     % horizontal advection
     dEdxm=(circshift(E,[0 -1])-E)/ctr.delta;
@@ -215,22 +192,6 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     advecy=zeros(ctr.imax,ctr.jmax,ctr.kmax);
     advecy(vt>0)=vt(vt>0).*dEdyp(vt>0)*dt;
     advecy(vt<0)=vt(vt<0).*dEdym(vt<0)*dt;
-    
-    if ctr.SSA==3
-        dudz=zeros(ctr.imax,ctr.jmax,ctr.kmax);
-        for k=2:ctr.kmax
-            dudz(:,:,k)=(ut(:,:,k)-ut(:,:,k-1))/(zeta(k)-zeta(k-1)).* ...
-                gradsx+(vt(:,:,k)-vt(:,:,k-1))/(zeta(k)- ...
-                zeta(k-1)).*gradsy;
-        end
-        fric=par.g*dt*repz.*dudz;
-    else
-        dudz=repmat(2*A.*taudxy.^par.n.*H.*(pxy+2)/ ...
-            (par.n+2),[1,1,ctr.kmax]).*repz.^pl;
-        fric=par.g*dt*repz.*dudz.*repmat(sqrt(gradxy),[1,1,ctr.kmax]);
-    end
-    repmask=repmat(MASK,[1,1,ctr.kmax]);
-    fric(repmask==0)=0; % no frictional heat in ice shelves
     extraterm=max(min((fric-advecx-advecy-DFlux),5*par.cp),-5*par.cp);
 
     % Temperature/Enthalpy solution
@@ -246,49 +207,49 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
     gtp(CTSm==1)=Epmp(CTSm==1);
     ftp(CTSm==1)=0;
 
-    for i=1:ctr.imax
-        for j=1:ctr.jmax
-            if Ht(i,j)>0  || CTSm(i,j,ctr.kmax)==1 % base is temperate
-            % Temperature/Enthalpy solution
-                for k=ctr.kmax-1:-1:2
-                    if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % for cold ice above the CTS only
-                    ftp(i,j,k)=atp(i,j,k)./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
-                    gtp(i,j,k)=(E(i,j,k)+extraterm(i,j,k)+ ...
-                        ctp(i,j,k).*gtp(i,j,k+1))./(btp(i,j,k)-ctp(i,j,k).*ftp(i,j,k+1));
-                    end
-                end
-                for k=2:ctr.kmax
-                    if k<idx(i,j) % E(i,j,k)<Epmp(i,j,k) % update in cold ice above the CTS
-                        E(i,j,k)=E(i,j,k-1).*ftp(i,j,k)+gtp(i,j,k);
-                        tmp(i,j,k)=(E(i,j,k)./par.cp)+par.Tref;
-                        wat(i,j,k)=0;
-                    elseif CTSm(i,j,k)==1 % impose conditions at the CTS
-                        E(i,j,k)=Epmp(i,j,k);
-                        tmp(i,j,k)=Tpmp(i,j,k);
-                        wat(i,j,k)=0;
-                    else  %  use prior guess in temperate ice
-                        E(i,j,k)=E0(i,j,k);
-                        tmp(i,j,k)=tmp0(i,j,k); 
-                        wat(i,j,k)=max((E0(i,j,k)-Epmp(i,j,k))./par.Latent,0);
-                    end
-                    % Find if ice is cold below the CTS while it should be temperate
-                    if k>idx(i,j) && E(i,j,k)<Epmp(i,j,k)
-                        E(i,j,k)=Epmp(i,j,k);
-                    end
-                    % Find if water is present above the CTS while it should be cold
-                    if k<idx(i,j) && E(i,j,k)>Epmp(i,j,k)
-                        E(i,j,k)=Epmp(i,j,k);
-                        wat(i,j,k)=0;
-                    end
-                end
-            else % cold ice column
-               E(i,j,:)=E0(i,j,:);
-               tmp(i,j,:)=tmp0(i,j,:);
-               wat(i,j,:)=0;
-            end
-        end
-    end    
+    % Recalculate enthalpy profiles for ice columns possessing a CTS
+    maskE=Ht>0|CTSm(:,:,ctr.kmax)==1; % base is temperate
+    for k=ctr.kmax-1:-1:2
+        mask_calc=(k<idx);
+        ftp(:,:,k)=mask_calc.*(atp(:,:,k)./(btp(:,:,k)-ctp(:,:,k).*ftp(:,:,k+1)))+...
+           ~mask_calc.*0;
+        gtp(:,:,k)=mask_calc.*((E(:,:,k)+extraterm(:,:,k)+ ...
+          ctp(:,:,k).*gtp(:,:,k+1))./(btp(:,:,k)-ctp(:,:,k).*ftp(:,:,k+1)))+...
+           ~mask_calc.*Epmp(:,:,k);
+    end
+    for k=2:ctr.kmax
+        % mask
+        mask_cold=(k<idx)&maskE==1;
+        mask_temp=(k>idx)&maskE==1;
+        mask_CTS=(k==idx);
+
+        % update enthalpy profiles in cold ice above the CTS (mask_cold)
+        % keep prior guess enthalpy profiles in temperate ice (mask_temp)
+        E(:,:,k)=mask_cold.*(E(:,:,k-1).*ftp(:,:,k)+gtp(:,:,k))+mask_CTS.*Epmp(:,:,k)+mask_temp.*E0(:,:,k);
+        tmp(:,:,k)=mask_cold.*((E(:,:,k)./par.cp)+par.Tref)+mask_CTS.*Tpmp(:,:,k)+mask_temp.*tmp0(:,:,k);
+        wat(:,:,k)=(mask_cold|mask_CTS).*0+mask_temp.*wat0(:,:,k);
+    end
+
+    % Keep prior guess enthalpy profiles for cold ice columns
+    E(repmat(maskE,[1 1 ctr.kmax])==0)=E0(repmat(maskE,[1 1 ctr.kmax])==0);
+    tmp(repmat(maskE,[1 1 ctr.kmax])==0)=tmp0(repmat(maskE,[1 1 ctr.kmax])==0);
+    wat(repmat(maskE,[1 1 ctr.kmax])==0)=0;
     
+    % use analytical solution at the domain boundary when using basins
+    nMASK=zeros(size(MASK));
+    if ctr.basin==1
+        nMASK(1,:)=1;
+        nMASK(ctr.imax,:)=1;
+        nMASK(:,1)=1;
+        nMASK(:,ctr.jmax)=1;
+    end
+    if ctr.mismip>0
+        E(:,1,:)=E(:,3,:);
+        E(:,end,:)=E(:,end-1,:);
+        E(1,:,:)=E(3,:,:);
+        E(end,:,:)=E(end-2,:,:);
+    end
+
     % Correction for unstable temperature profiles
     % find an anomaly where temperature decreases with depth
     [ipos,jpos]=find((tmp(:,:,ctr.kmax-1)-tmp(:,:,ctr.kmax))>3 | ...
@@ -296,7 +257,7 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         (tmp(:,:,ctr.kmax-3)-tmp(:,:,ctr.kmax-2))>3);
     nMASK(sub2ind(size(nMASK),ipos,jpos))=1;
 
-    %OR: find an anomaly at the CTS or in the temperate layer
+    % find an anomaly at the CTS or in the temperate layer
     [ipos,jpos]=find(Ptv==1 & E(:,:,ctr.kmax)<Epmp(:,:,ctr.kmax));
     nMASK(sub2ind(size(nMASK),ipos,jpos))=1;
     % apply linear temperature profile when MASK=0 & unstable
@@ -348,47 +309,11 @@ function [E,Epmp,wat,CTSm,CTSp,Bmelt,Dbw,Dfw,Hw,Ht,tmp]= ...
         wat(wat>wat_max)=wat_max;
     end
     Dbw(Dbw>1)=1; % correction for unrealistic high values
+    Dbw(Dbw<0)=0; 
 
-    % YELMO code: get enthalpy again (to be consistent with new water content)
+    % get enthalpy again (to be consistent with new water content)
     E=(tmp<Tpmp).*((tmp-par.Tref)*par.cp) + (tmp>=Tpmp).*((wat.*par.Latent)+Epmp);
 
-    % Basal melting 
-    % UPDATE BASAL CONDITIONS
-    % Cold base and dry
-    Cld=(E(:,:,ctr.kmax)<Epmp(:,:,ctr.kmax) & Hw==0);
-    % Cold base and wet
-    Blw=(E(:,:,ctr.kmax)<Epmp(:,:,ctr.kmax) & Hw>0);
-    % Temperate base
-    Abv=((E(:,:,ctr.kmax)>=Epmp(:,:,ctr.kmax)) & Ht==0 & Hw>0);
-    % Temperate layer
-    Ptv=((E(:,:,ctr.kmax)>=Epmp(:,:,ctr.kmax)) & Ht>0 & Hw>0);
-    repE=E(:,:,ctr.kmax);
-    repEpmp=Epmp(:,:,ctr.kmax); 
-    repE(Blw==1)=repEpmp(Blw==1);
-    E(:,:,ctr.kmax)=repE;
-    repE(Abv==1)=repEpmp(Abv==1);
-    E(:,:,ctr.kmax)=repE;
-    % Basal Heat sources
-    Fb=ub.*taudxy/par.secperyear; % frictional heating
-    BasalHeat=G+Fb; % [W/m2]=[J s-1 m-2]
-    % Enthalpy gradient at the base
-    dEdz=(E(:,:,ctr.kmax)-E(:,:,ctr.kmax-1))./(max(H,1e-8).* ...
-        dzm(:,:,ctr.kmax)); % [J kg-1 m-1]
-    % Basal (non advective) Heat Flux
-    Qq = (par.K*dEdz/par.cp).*(Ptv==0) + (par.K0*dEdz).*(Ptv==1);
-    % Basal melting (m/a) based on Aschwanden et al. (2012)
-    Bmelt=min(1,max(-1,((BasalHeat-Qq).*par.secperyear./ ...
-        ((1-wat(:,:,ctr.kmax))*par.Latent*par.rho)))); 
-    Bmelt(MASK~=1)=0;
-    Bmelt(H==0)=0; 
-    Bmelt(Cld==1)=0; 
-    Bmelt(Bmelt<0 & Hw<=0)=0; 
-
-    % Water layer thickness 
-    % with a constant drainage rate of 1 mm/a
-    % more stable if only applied when considerable Hw
-    Hw=max(0,min(Hw+(Bmelt+Dbw-(par.Cdr.*(Hw>=par.Wmax)))*dt,par.Wmax));
-    Hw(MASK~=1)=0; % only for the grounded ice sheet
 end
 
 

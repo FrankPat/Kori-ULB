@@ -1,4 +1,4 @@
-function [tmp,E,Epmp,wat]=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts,MASK,DeltaT)
+function [tmp,E,wat]=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts,MASK,DeltaT)
 
 % Kori-ULB
 % Temperature field initialization with analytical solution for temperature
@@ -38,7 +38,7 @@ function [tmp,E,Epmp,wat]=InitTemp3d(G,taudxy,ub,ud,par,H,Mb,zeta,ctr,Ts,MASK,De
         % Water content
         wat=max(0,(E-Epmp)./par.Latent);
     else
-        [E,Epmp,wat]=deal(false);
+        [E,wat]=deal(false);
     end
 end
 
