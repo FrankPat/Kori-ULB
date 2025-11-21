@@ -701,7 +701,7 @@ ctr.Tinit=1;
 ctr.Tcalc=2;
 ctr.basin=1;
 ctr.inverse=1;
-ctr.enthalpy=1;
+ctr.Enthalpy=1;
 
 if n==1
     KoriModel('ASE3km','ASEint1',ctr);
@@ -738,4 +738,5 @@ end
 
 
 end
+
 
