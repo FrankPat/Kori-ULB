@@ -20,7 +20,7 @@ function [A,Ax,Ay,Ad,A3d,Tbc]=ThermoCoupling(ctr,par,Tb,H,bMASK,bMASKm, ...
                 (par.R*(Tstar(Tstar<=par.T0-10))));
             A3d(Tstar>par.T0-10)=par.atune*par.a2D*exp(-par.Q2D./ ...
                 (par.R*(Tstar(Tstar>par.T0-10))));
-            if wat
+            if ctr.Enthalpy>0
                 A3d=A3d.*(1+181.25*min(wat,0.03)); % Adding effect of water content with enthalpy
             end
         else
@@ -29,7 +29,7 @@ function [A,Ax,Ay,Ad,A3d,Tbc]=ThermoCoupling(ctr,par,Tb,H,bMASK,bMASKm, ...
         A=0.5*par.atune*((Tbc<-6.5)*par.a1+(Tbc>=-6.5)*par.a2).* ...
             exp(((Tbc<-6.5)*par.Q1+(Tbc>=-6.5)*par.Q2)./par.R.* ...
             (1./(par.T0-par.pmp*H)-1./(Tb+par.T0)));
-        if wat
+        if ctr.Enthalpy>0
             A=A.*(1+181.25*min(wat(:,:,ctr.kmax),0.03)); % Adding effect of water content with enthalpy
         end
         [Ax,Ay,Ad]=StaggeredA(A);
