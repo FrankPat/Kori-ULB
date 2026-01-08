@@ -107,6 +107,7 @@ function [CMB,LSF,CR]=CalvingAlgorithms(ctr,par,dudx,dvdy,dudy,dvdx,glMASK,H,A, 
                 CR=zeros(size(LSF));
             end
         end
+        CR(glMASK<3)=MAGV(glMASK<3); % ensure no calving in grounded ice
 
         if ctr.LimitFront==1
             CR(CR<MAGV & (MASKo==3 & circshift(MASKo,[-1 0])==0 | ...
