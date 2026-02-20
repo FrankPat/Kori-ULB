@@ -7,6 +7,7 @@ function default=InitDefault
     default.upstream=1; % upstream differences in solution of ice thickness equation
     default.ItSolv=1; %VL: new parameter
     default.BetaIter=5; % number of times that beta is updated within velocity nonlinear iteration
+    default.veltol=1e-4; % Tolerance for the iterative SSA velocity solver (1e-4)
     default.snapshot=100;
     default.Ao=1.0e-16;
     default.m=1;

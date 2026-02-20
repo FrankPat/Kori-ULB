@@ -16,6 +16,7 @@ function ds=SurfaceDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H)
     tau1=2*lambda1.*eta./(H+eps);
     tau2=2*lambda2.*eta./(H+eps);
     Rxx=2*tau1+tau2;
+%     Rxx=tau1;
 
     dw=zeros(ctr.imax,ctr.jmax); % Water depth in the surface crevasse (Sun2017, Nick2010) -- TO DO!
     if ctr.SFdam==1

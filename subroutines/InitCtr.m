@@ -55,6 +55,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.radnorm(any(ismember(fields(ctr),'radnorm'))==0)=default.radnorm;
     ctr.snapshot(any(ismember(fields(ctr),'snapshot'))==0)=default.snapshot;
     ctr.BetaIter(any(ismember(fields(ctr),'BetaIter'))==0)=default.BetaIter;
+    ctr.veltol(any(ismember(fields(ctr),'veltol'))==0)=default.veltol;
     ctr.shelftune(any(ismember(fields(ctr),'shelftune'))==0)=default.shelftune;
     ctr.Ao(any(ismember(fields(ctr),'Ao'))==0)=default.Ao;
     ctr.u0(any(ismember(fields(ctr),'u0'))==0)=default.u0;
@@ -64,7 +65,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.Asin(any(ismember(fields(ctr),'Asin'))==0)=default.Asin;
     ctr.taulim(any(ismember(fields(ctr),'taulim'))==0)=default.taulim;
     ctr.TRdam(any(ismember(fields(ctr),'TRdam'))==0)=1;
-    ctr.THdam(any(ismember(fields(ctr),'THdam'))==0)=0;
+    ctr.THdam(any(ismember(fields(ctr),'THdam'))==0)=1;
     ctr.HLdam(any(ismember(fields(ctr),'HLdam'))==0)=1;
     if ctr.damage==1
         ctr.SFdam(any(ismember(fields(ctr),'SFdam'))==0)=1;

@@ -696,7 +696,7 @@ function [u,v,s,flag,relres,iter]=SparseSolverSSA(nodeu,nodev,s0, ...
         D=diag(diag(A));
         C1=tril(A);
         C2=D\triu(A);
-        [s,flag,relres,iter]=bicgstab(A,R,par.veltol,par.veliter,C1,C2,s0);
+        [s,flag,relres,iter]=bicgstab(A,R,ctr.veltol,par.veliter,C1,C2,s0);
         if flag>0 && ctr.ItSolv==1 % ItSolve==2, keep previous estimate
             s=A\R;
         end

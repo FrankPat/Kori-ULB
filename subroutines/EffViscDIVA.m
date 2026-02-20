@@ -43,6 +43,10 @@ function [eta,etaD,dudx,dvdy,dudy,dvdx]=EffViscDIVA(A3d,betax,betay,ubx,uby, ...
     end
     Astar=A3d.*repmat(scale_eta,[1,1,ctr.kmax]);
     etaD=0.5*Astar.^(-1./par.n).*EffStrD.^((1-par.n)/(2*par.n));
+    MASK3d=repmat(MASK,[1,1,ctr.kmax]);
+    tune3d=repmat(shelftune,[1,1,ctr.kmax]);
+    ubx3d=repmat(ubx,[1,1,ctr.kmax]);
+    etaD(MASK3d==0 | ubx3d>100)=etaD(MASK3d==0 | ubx3d>100)./tune3d(MASK3d==0 | ubx3d>100);
     
     % Vertical integration of effective viscosity
     eta=zeros(ctr.imax,ctr.jmax);
@@ -50,7 +54,7 @@ function [eta,etaD,dudx,dvdy,dudy,dvdx]=EffViscDIVA(A3d,betax,betay,ubx,uby, ...
         eta=eta+0.5*(etaD(:,:,k)+etaD(:,:,k-1))*(zeta(k)-zeta(k-1));
     end
     eta=eta.*H;
-    eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
+%     eta(MASK==0)=eta(MASK==0)./shelftune(MASK==0);  %VL: 2D shelftune
     if ctr.shelf==1 || ctr.schoof>0
         MASKb=ones(ctr.imax,ctr.jmax); % use constant eta on edges of ice shelf
         if ctr.mismip==0

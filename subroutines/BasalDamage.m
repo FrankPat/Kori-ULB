@@ -16,6 +16,7 @@ function db=BasalDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
     tau1=2*lambda1.*eta./(H+eps);
     tau2=2*lambda2.*eta./(H+eps);
     Rxx=2*tau1+tau2;
+%     Rxx=tau1;
 
     if ctr.BSdam==1
         db=(par.rho/(par.rhow-par.rho))*((Rxx./(par.rho*par.g))-max(HAF,0));
@@ -23,8 +24,8 @@ function db=BasalDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
         db=(par.rho/(par.rhow-par.rho))*((pi*0.5*Rxx./(par.rho*par.g))-max(HAF,0));
     elseif ctr.BSdam==3
         alpha=lambda2./lambda1;
-        db=db.*(2+alpha);
-        %    db=(par.rho/(par.rhow-par.rho))*(tau1.*(2+alpha)./(par.rho*par.g*(H+eps)));
+%         db=db.*(2+alpha);
+        db=(par.rho/(par.rhow-par.rho))*(tau1.*(2+alpha)./(par.rho*par.g*(H+eps)));
     else
         db=zeros(ctr.imax,ctr.jmax); % Initialize to zeros
     end
