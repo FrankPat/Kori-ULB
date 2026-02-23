@@ -20,7 +20,7 @@ function Neff=HybridWater(flw,dphi0,Po,A,ub,par,kappa)
 
     c1    = 1/(par.rho*par.Latent);
     c2    = 2*A*(par.n^(-par.n));
-    c3    = (2/pi)^(0.25)*sqrt((pi+2)/(par.rhow*f));
+    c3    = (2/pi)^(0.25)*sqrt((pi+2)/(par.rhof*f));
     
     % Flow in a single channel
     Q = flw*r;
