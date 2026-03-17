@@ -615,7 +615,7 @@ function Antarctica(n)
     ctr.calving=2;
     ctr.WV=0;
     
-    ctr.Enthalpy=1;
+%     ctr.Enthalpy=1;
 
     if n==1
         KoriModel('Bedmachine25km','INIT25a',ctr);
@@ -642,7 +642,7 @@ function Antarctica(n)
     ctr.calving=4;
     ctr.nsteps=1001;
     fc.DeltaT=zeros(ctr.nsteps,1)+10;
-    ctr.shelfBC=1;
+    ctr.YearlyMeans=1;
     
     if n==3
         KoriModel('INIT25b','Run25a',ctr,fc);
