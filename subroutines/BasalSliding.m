@@ -74,6 +74,7 @@ function [Asf,Asfx,Asfy,Asfd,Neff,Wtil,r,expflw]=BasalSliding(ctr,par, ...
             Neff = NInf.*(1 - erfc(sqrt(pi)/2*phi0./NInf));
             Neff(MASK == 0) = par.sigmat*Po(MASK == 0);
         end
+        Neff=max(Neff,0);
     end
  
     effectHydro = max(par.effectHydroLimit, ((Neff/par.NeffScale).^(ctr.p))./expflw);

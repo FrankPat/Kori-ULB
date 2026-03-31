@@ -56,6 +56,9 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.snapshot(any(ismember(fields(ctr),'snapshot'))==0)=default.snapshot;
     ctr.BetaIter(any(ismember(fields(ctr),'BetaIter'))==0)=default.BetaIter;
     ctr.veltol(any(ismember(fields(ctr),'veltol'))==0)=default.veltol;
+    if ctr.basin==1
+        ctr.veltol=ctr.veltol/10;
+    end
     ctr.shelftune(any(ismember(fields(ctr),'shelftune'))==0)=default.shelftune;
     ctr.Ao(any(ismember(fields(ctr),'Ao'))==0)=default.Ao;
     ctr.u0(any(ismember(fields(ctr),'u0'))==0)=default.u0;
