@@ -56,7 +56,7 @@ par.longcoupwater    = 5;                       % distance in number of ice thic
                                                 % hydraulic gradient coupling takes place
 par.dirpp_war        = [9 8 7 6 5 4 3 2 1];
 par.waterviscosity   = 1.8e-3/par.secperyear;
-par.NeffScale        = 5e6;                     % scale factor for Effective Pressure
+par.NeffScale        = 5e5;                     % scale factor for Effective Pressure
 par.Wdmin            = 1e-8;                    % minimum value for Wd and Wtil
 par.Wdmax            = 0.015;                   % maximum value for Wd
 par.Wmax             = 2;                       % maximum value for Wtil (2 m)
@@ -90,9 +90,6 @@ par.n            = 3;                        % flow law exponent
 par.visciter     = 50;                       % Maximum number of iterations on the nonlinear part of the SSA equation (50)
 par.visctol      = 5e-1;                     % Tolerance for calculation of the nonlinear part of the SSA equation (0.5)
 par.veliter      = 50;                       % Maximum number of iterations for the iterative SSA velocity solver (50)
-if basin==1
-    par.veltol   = par.veltol/10;
-end
 par.Hiter        = 20;                       % max iteration number for iterative thickness solver (20)
 par.Htol         = 1e-6;                     % tolerance for iterative thickness solver (1e-6)
 par.Z            = 2*(par.g*par.rho)^par.n;  % SIA isothermal pre-term

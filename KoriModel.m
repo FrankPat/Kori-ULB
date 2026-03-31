@@ -472,8 +472,8 @@ for cnt=cnt0:ctr.nsteps
     taud=par.rho*par.g*Hm.*sqrt(gradm); % taud on d-grid
     taudxy=par.rho*par.g*H.*sqrt(gradxy); % taud on h-grid
     [Asf,Asfx,Asfy,Asfd,Neff,Wtil,r,expflw]=BasalSliding(ctr,par, ...
-        A,As,Tbc,H,B,MASK,ub,Wd,Wtil,Bmelt,flw,Neff,expflw,kappa,updateHydro, ...
-        bMASK,bMASKm,bMASKx,bMASKy);
+        A,As,Tbc,H,B,MASK,ub,Wd,Wtil,Bmelt+Dbw,flw,Neff,expflw,kappa, ...
+        updateHydro,bMASK,bMASKm,bMASKx,bMASKy);
 
 %-------------------------------------------------
 % SIA velocity and diffusivities
@@ -527,7 +527,7 @@ for cnt=cnt0:ctr.nsteps
 %-------------------------------------
     if not(or(ctr.subwaterflow==0, ctr.subwaterflow==2))
         if cntT==1
-            [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,max(1e-8,Bmelt+Dbw));
+            [flw,Wd]=SubWaterFlux(ctr,par,H,HB,MASK,max(1e-5,Bmelt+Dbw));
             Wd0=Wd;
         else
             if ctr.inverse==0
@@ -655,7 +655,7 @@ for cnt=cnt0:ctr.nsteps
 
     if ctr.diagnostic==0
         % sum of mass balance components for continuity equation
-        Massb=Mb-Bmelt-Melt;
+        Massb=Mb-(Bmelt+Dbw)-Melt;
         if ctr.basin==1
             Massb(bMASK==1)=0; % only for ice thickness evolution
         end
@@ -740,11 +740,11 @@ for cnt=cnt0:ctr.nsteps
     
     if islogical(ZB)==0
         mb_basin(cnt,:,:)=BasinFlux(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
-            H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,squeeze(mb_basin(cnt,:,:)),B,Bn,SLR,ZB);
+            H,Hn,Bmelt+Dbw,Melt,CMB,FMB,MASK,bMASK,squeeze(mb_basin(cnt,:,:)),B,Bn,SLR,ZB);
         mbcomp(cnt,:)=sum(squeeze(mb_basin(cnt,:,:)),2);
     else
         mbcomp(cnt,:)=MBcomponents(ctr,par,acc,Smelt,runoff,rain,Mb,Pr, ...
-            H,Hn,Bmelt,Melt,CMB,FMB,MASK,bMASK,mbcomp(cnt,:),B,Bn,SLR);
+            H,Hn,Bmelt+Dbw,Melt,CMB,FMB,MASK,bMASK,mbcomp(cnt,:),B,Bn,SLR);
     end
     IVg(cnt)=sum(H(MASK==1))*ctr.delta^2;
     Ag(cnt)=sum(MASK(H>0)==1)*ctr.delta^2;
@@ -796,7 +796,7 @@ for cnt=cnt0:ctr.nsteps
         [Melt_mean,Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean, ...
             CR_mean,FMR_mean,fluxmx_mean,fluxmy_mean,Smelt_mean, ...
             runoff_mean,rain_mean,acc_mean]=InitYearlyMeans(Melt, ...
-            Bmelt,Ts,Mb,To,So,TF,CR,FMR,fluxmx,fluxmy,Smelt,runoff,rain,acc);
+            Bmelt+Dbw,Ts,Mb,To,So,TF,CR,FMR,fluxmx,fluxmy,Smelt,runoff,rain,acc);
     end
     if ctr.timeslice==1 
         if cnt==1 || (ctr.SnapList==1 && fc.snap_year(slicecount)==time(cnt)) ...
@@ -817,7 +817,7 @@ for cnt=cnt0:ctr.nsteps
         [Melt_mean,Bmelt_mean,Ts_mean,Mb_mean,To_mean,So_mean,TF_mean, ...
             CR_mean,FMR_mean,fluxmx_mean,fluxmy_mean,Smelt_mean, ...
             runoff_mean,rain_mean,acc_mean]=YearlyMeans(Melt, ...
-            Bmelt,Ts,Mb,To,So,TF,CR,FMR,fluxmx,fluxmy,Smelt,runoff, ...
+            Bmelt+Dbw,Ts,Mb,To,So,TF,CR,FMR,fluxmx,fluxmy,Smelt,runoff, ...
             rain,acc,cnt,ctr,Melt_mean,Bmelt_mean,Ts_mean,Mb_mean, ...
             To_mean,So_mean,TF_mean,CR_mean,FMR_mean,fluxmx_mean, ...
             fluxmy_mean,Smelt_mean,runoff_mean,rain_mean,acc_mean);
@@ -914,6 +914,9 @@ if islogical(Wd)==0
 end
 if islogical(Wtil)==0
     save(outfile,'Wtil','-append');
+end
+if ctr.subwaterflow>=4
+    save(outfile,'ub','-append'); % ub is needed to calculate effective pressure
 end
 if islogical(MeltInv)==0
     save(outfile,'MeltInv','-append');
