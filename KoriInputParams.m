@@ -56,7 +56,7 @@ par.longcoupwater    = 5;                       % distance in number of ice thic
                                                 % hydraulic gradient coupling takes place
 par.dirpp_war        = [9 8 7 6 5 4 3 2 1];
 par.waterviscosity   = 1.8e-3/par.secperyear;
-par.NeffScale        = 5e5;                     % scale factor for Effective Pressure
+par.NeffScale        = 1e6;                     % scale factor for Effective Pressure
 par.Wdmin            = 1e-8;                    % minimum value for Wd and Wtil
 par.Wdmax            = 0.015;                   % maximum value for Wd
 par.Wmax             = 2;                       % maximum value for Wtil (2 m)
@@ -185,8 +185,8 @@ par.stdDevRegul      = 3.5;    % standard deviation of the Gaussian filter
 if basin==1
     par.stdDevRegul  = par.stdDevRegul+1;
 end
-par.invmin           = 1.e-11; % values valid for m=2; scaled with 150kPa for other m
-par.invmax           = 1.e-2;
+par.invmin           = 1.e-10; % values valid for m=2; scaled with 150kPa for other m
+par.invmax           = 1.e-3;
 par.invmaxncor       = 1.e-5;
 par.AsFroz           = 1e-11;
 par.AsScale          = 1e5^(2-m);
