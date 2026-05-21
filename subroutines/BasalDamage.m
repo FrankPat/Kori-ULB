@@ -15,8 +15,11 @@ function db=BasalDamage(ctr,par,dudx,dvdy,dudy,dvdx,eta,H,HAF)
     % hence, the ice thickness is considered in there
     tau1=2*lambda1.*eta./(H+eps);
     tau2=2*lambda2.*eta./(H+eps);
-    Rxx=2*tau1+tau2;
-%     Rxx=tau1;
+    if ctr.damage==1
+        Rxx=2*tau1+tau2;
+    else
+        Rxx=tau1;
+    end
 
     if ctr.BSdam==1
         db=(par.rho/(par.rhow-par.rho))*((Rxx./(par.rho*par.g))-max(HAF,0));

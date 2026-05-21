@@ -70,7 +70,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.TRdam(any(ismember(fields(ctr),'TRdam'))==0)=1;
     ctr.THdam(any(ismember(fields(ctr),'THdam'))==0)=1;
     ctr.HLdam(any(ismember(fields(ctr),'HLdam'))==0)=1;
-    if ctr.damage==1
+    if ctr.damage>=1
         ctr.SFdam(any(ismember(fields(ctr),'SFdam'))==0)=1;
         ctr.BSdam(any(ismember(fields(ctr),'BSdam'))==0)=1;
     else

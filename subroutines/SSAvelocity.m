@@ -74,7 +74,7 @@ function [uxssa,uyssa,beta2,eta,etaD,dudx,dudy,dvdx,dvdy,su,ubx,uby,ux,uy, ...
             [eta,etaD,dudx,dvdy,dudy,dvdx]=EffViscDIVA(A3d,betax,betay,ubx,uby, ...
                 etaD,H,H0,damage,uxssa,uyssa,zeta,MASK,glMASK,shelftune,ctr,par);
         end
-        if ctr.damage==1 && (ctr.damexist==1 || cnt>1)
+        if ctr.damage>=1 && (ctr.damexist==1 || cnt>1)
             if ll==1
                 dtr=zeros(ctr.imax,ctr.jmax);
                 ThinComp=zeros(ctr.imax,ctr.jmax);
