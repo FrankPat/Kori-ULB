@@ -177,6 +177,11 @@ if ctr.SSA==0
     ctr.ItSolv=0;
 end
 
+% Force p=m if p>0 for Coulomb friction
+if ctr.p>0 && ctr.u0<1e10
+    ctr.p=ctr.m;
+end
+
 % initialize the time slice counter
 slicecount=0;
 
@@ -187,7 +192,7 @@ slicecount=0;
 
 [Asor,stdB,v,vx,vy,tmp,Db,To,So,Tb,uxssa,uyssa,deltaZ,arcocn,arcocn0, ...
     E,wat,Pr,Evp,runoff,MeltInv,lat,acc,Smelt,rain,TF,HAF,Hinit,ZB, ...
-    flagHu,frb,kei,Ll,damage,CR,FMR,fluxmx,fluxmy,ds,db,Hw,Ht]=deal(false);
+    flagHu,frb,kei,Ll,damage,CR,FMR,fluxmx,fluxmy,ds,db,Hw,Ht,Dfw]=deal(false);
 
 %---------------------
 % Initialization
@@ -280,17 +285,16 @@ zeta=CalculateZeta(ctr.kmax,0.015);
 if ctr.Tcalc>=1
     [tmp,Tb,dzc,dzp,dzm,E,Epmp]=InitTempParams(ctr,par,zeta,tmp,Ts,H,E);
     if ctr.Enthalpy==1
-        CTSm=zeros(size(tmp));
-        CTSp=zeros(size(tmp));
-        Ht=zeros(size(Tb));
-        Hw=zeros(size(Tb));
-        Bmelt=zeros(size(Tb));
-        Dfw=zeros(size(E));
-        if ctr.Tinit==0
-            Hw=max(0,min((Bmelt-par.Cdr)*ctr.dt*ctr.intT,par.Wmax));
-            wat=max(0,(E-Epmp)/par.Latent);
-            [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
+        if islogical(Hw)==1
+            Hw=max(0,min((Bmelt+Dbw-par.Cdr)*ctr.dt*ctr.intT,par.Wmax));
         end
+        if islogical(wat)==1
+            wat=min(max(0,(E-Epmp)/par.Latent),0.03);
+        end
+        if islogical(Dfw)==1
+            Dfw=zeros(size(E));
+        end
+        [CTSm,CTSp,Ht]=CalculateCTS(ctr,E,Epmp,MASK,H,zeta);
     end
 end
 
@@ -875,6 +879,7 @@ if ctr.Tcalc>=1
 end
 if ctr.Enthalpy==1
     save(outfile,'E','-append'); %OR
+    save(outfile,'Dbw','Dfw','Hw','Ht','CTSp','CTSm','-append');
 end
 if ctr.inverse>0
     save(outfile,'Asor','-append');
