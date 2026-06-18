@@ -182,14 +182,15 @@ par.SLref    = 0;        % reference sea level
 
 par.stdDevRegul      = 3.5;    % standard deviation of the Gaussian filter
                                % for the regularization in grid cells (3.5)
-if basin==1
-    par.stdDevRegul  = par.stdDevRegul+1;
-end
-par.invmin           = 1.e-10; % values valid for m=2; scaled with 150kPa for other m
-par.invmax           = 1.e-3;
+par.invmin           = 1.e-11; % values valid for m=2; scaled with 150kPa for other m
+par.invmax           = 1.e-4;
 par.invmaxncor       = 1.e-5;
 par.AsFroz           = 1e-11;
 par.AsScale          = 1e5^(2-m);
+if basin==1
+    par.stdDevRegul  = par.stdDevRegul+1;
+    par.invmax       = 1.e-3;
+end
 
 %-----------------------------------
 % Thermodynamics
@@ -234,6 +235,10 @@ par.Psigma    = 3.5;         % standard deviation of mean T for rain factor calc
 par.PDDsteps  = 48;
 par.Prfac     = 0.053;       % sensitivity factor: precipitation change with temperature
                              % Golledge et al. (2015): 0.053 -- fit to CMIP5 data
+par.Trs       = -1.5;
+par.Sp        = 0.5;
+par.gamma_rs  = 0;
+par.f_EIM_ref = 1;
 
 %-----------------------------------
 % Basin model parameters
