@@ -66,6 +66,7 @@ function [ctr,fc]=InitCtr(ctr,fc,default)
     ctr.upstream(any(ismember(fields(ctr),'upstream'))==0)=default.upstream;
     ctr.ItSolv(any(ismember(fields(ctr),'ItSolv'))==0)=default.ItSolv;
     ctr.Asin(any(ismember(fields(ctr),'Asin'))==0)=default.Asin;
+    ctr.AsOcean(any(ismember(fields(ctr),'AsOcean'))==0)=default.AsOcean;
     ctr.taulim(any(ismember(fields(ctr),'taulim'))==0)=default.taulim;
     ctr.TRdam(any(ismember(fields(ctr),'TRdam'))==0)=1;
     ctr.THdam(any(ismember(fields(ctr),'THdam'))==0)=1;

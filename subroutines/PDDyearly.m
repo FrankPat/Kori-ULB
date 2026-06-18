@@ -22,14 +22,19 @@ function [runoff,acc,rain,Smelt]=PDDyearly(ctr,par,Ts,Pr,lat,MASK,sn)
     nT=(Tm-par.PDDth)/(sqrt(2)*par.Tsigma);
     T=(par.Tsigma/sqrt(2*pi)*exp(-(nT.^2))+0.5*(Tm-par.PDDth).* ...
         erfc(-nT))+par.PDDth;
-
-    % Rain fraction calculation
-    nP=(Tm-par.Tsnow)/(sqrt(2)*par.Psigma);
-    P=(par.Psigma/sqrt(2*pi)*exp(-(nP.^2))+0.5*(Tm-par.Tsnow).* ...
-        erfc(-nP))+par.Tsnow;
-
     PDD=sum(T,3)*365.25/par.PDDsteps;
-    R=sum(1-max(0,min((par.Train-P)/(par.Train-par.Tsnow),1)),3)/par.PDDsteps;
+
+    % % Rain fraction calculation
+    % nP=(Tm-par.Tsnow)/(sqrt(2)*par.Psigma);
+    % P=(par.Psigma/sqrt(2*pi)*exp(-(nP.^2))+0.5*(Tm-par.Tsnow).* ...
+    %     erfc(-nP))+par.Tsnow;
+    % R=sum(1-max(0,min((par.Train-P)/(par.Train-par.Tsnow),1)),3)/par.PDDsteps;
+
+    %% Rain fraction calculation following Hantel et al. (2000) %%%
+    Trs_loc = par.Trs - par.gamma_rs .* (sn ./ 1000);       % If par.gamma_rs>0, transition temperature to depend on elevation
+    Sfrac = 0.5 .* (1 - tanh(par.Sp .* (Tm - Trs_loc)));   % snow fraction
+    R     = 1 - Sfrac;
+    R=sum(R,3)/par.PDDsteps;
     
     % Melt model
     acc=max(0,Pr.*(1-R)); % Snow Accumulation Rate. R is the fraction of 
@@ -41,18 +46,11 @@ function [runoff,acc,rain,Smelt]=PDDyearly(ctr,par,Ts,Pr,lat,MASK,sn)
     EIM=par.icefac.*PDDr; % Effective ice melt
     Smelt=ESM+EIM; % total surface melt
 
-    % Refreezing model
-    W_r=ESM+rain; % Available water mass - maximum amount of water that 
-                  % can be retained provided enough energy is available
-    P_r=max(-(min(Ts,0))*par.d_ice*par.K/(par.kdif*par.rho*par.Latent),0); 
-    % Potential retention mass - maximum amount of liquid water that can 
-    % be retained provided enough mass is available
-    E_r=min(Pr,min(P_r,W_r)); 
-    % Effective Refreezing - amount of water that is effectively 
-    % retained at the end of the melting season
-    % Er is limited by the annual precipitation
-    runoff=EIM+W_r-E_r; % ice melt + rain and snowmelt liquid water beyond 
-                        % the snowpack saturation
+    % Refreezing model: Simple dynamic parameterization or the refreezing process - Huybrechts & DeWolde 1999
+    W_r = ESM + rain + par.f_EIM_ref .* EIM; % Available water mass - maximum amount of water that can be retained provided enough energy is available
+    P_r = max(-(min(Ts,0))*par.d_ice*par.K/(par.kdif*par.rho*par.Latent),0); % Potential retention mass - maximum amount of liquid water that can be retained provided enough mass is available
+    E_r = min(P_r, W_r); % Effective Refreezing - amount of water that is effectively retained at the end of the melting season
+    runoff = (1 - par.f_EIM_ref) .* EIM + W_r - E_r;  % ice melt + rain and snowmelt liquid water beyond the snowpack saturation
 
 end
 

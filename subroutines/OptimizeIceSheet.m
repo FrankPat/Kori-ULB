@@ -23,8 +23,10 @@ function [As,deltaZ,Asor]=OptimizeIceSheet(ctr,par,cnt, ...
             abs(deltaZold)).*10.^deltaZ(abs(deltaZ)>=abs(deltaZold));
     end
     Asor(Asor<par.invmin/10)=par.invmin/10;
-    Asor(Asor>par.invmax*1000)=par.invmax*1000;
+%     Asor(Asor>par.invmax*1000)=par.invmax*1000;
+    Asor(Asor>par.invmax*10)=par.invmax*10; % Vio: update June26
     Asor(Asor>invmax2D & ncor==0)=invmax2D(Asor>invmax2D & ncor==0);
+    Asor(MASK==0)=ctr.AsOcean; % Vio: update June26
     if ctr.vexist==1
         As = RegularizationNew(Asor,B,stdB,vx,vy,ctr,ncor,par.stdDevRegul);
     else
@@ -36,5 +38,4 @@ function [As,deltaZ,Asor]=OptimizeIceSheet(ctr,par,cnt, ...
         As(bMASK==1)=par.As0;
     end
 end
-
 

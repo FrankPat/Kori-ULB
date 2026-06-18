@@ -144,6 +144,11 @@ function LSF=LSFfunction(LSF,ctr,u,v,node,nodes,VM,MASK)
     end
 
     LSF(node>0)=s(node(node>0));
+    % Ensure symmetry in ctr.mismip=2.
+    if ctr.mismip==2
+        LSF(1,:) = LSF(3,:);
+        LSF(:,1) = LSF(:,3);
+    end
     
 %     % Avoid numerical issues when calving front coincides with grounding line.
 %     % Allow for a couple of grid cells of calving front between GL and open ocean.
